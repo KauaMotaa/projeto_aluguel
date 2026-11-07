@@ -1,6 +1,8 @@
+import 'package:aluguel_app/data/datasources/leituras_locais.dart';
 import 'package:aluguel_app/data/repositories/leitura_repository.dart';
 import 'package:aluguel_app/features/leituras/viewmodel/leituras_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/api_falsa.dart';
 
@@ -33,9 +35,9 @@ ApiFalsa semHistorico() => ApiFalsa({
       ],
     });
 
-Future<LeiturasViewModel> montar(ApiFalsa api) async {
+Future<LeiturasViewModel> montar(ApiFalsa api, {LeiturasLocais? locais}) async {
   final vm = LeiturasViewModel(
-    LeituraRepository(api.cliente),
+    LeituraRepository(api.cliente, locais ?? LeiturasLocais()),
     imovelId: 1,
     competencia: '2026-11',
   );
@@ -43,7 +45,24 @@ Future<LeiturasViewModel> montar(ApiFalsa api) async {
   return vm;
 }
 
+/// Faz o que o `TextField` faz na tela: poe o texto no controller e
+/// avisa a ViewModel. Chamar so `validar` nao preenche o campo, e o
+/// salvamento le o campo.
+void digitar(LeiturasViewModel vm, LinhaLeitura linha, String tipo,
+    String texto) {
+  if (tipo == 'agua') {
+    linha.controllerAgua.text = texto;
+  } else {
+    linha.controllerEnergia.text = texto;
+  }
+  vm.validar(linha, tipo, texto);
+}
+
 void main() {
+  // O cache usa SharedPreferences; cada teste comeca com ele vazio.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   test('consumo dentro do normal nao avisa nada', () async {
     final vm = await montar(comHistorico());
     final linha = vm.linhas.single;
@@ -164,5 +183,146 @@ void main() {
   test('o limite alto e folgado para o aviso nao virar ruido', () {
     expect(LeiturasViewModel.limiteAlto, 3.0);
     expect(LeiturasViewModel.limiteBaixo, closeTo(0.333, 0.001));
+  });
+
+  group('sem sinal', () {
+    test('com rede, a tela nao mostra tarja nenhuma', () async {
+      final vm = await montar(comHistorico());
+
+      expect(vm.offline, isFalse);
+      expect(vm.temPendencia, isFalse);
+      expect(vm.avisoDeSincronia, isNull);
+    });
+
+    test('ja tendo aberto com rede, abre de novo offline pelo espelho',
+        () async {
+      final locais = LeiturasLocais();
+
+      // Primeira visita, com sinal: guarda o espelho.
+      await montar(comHistorico(), locais: locais);
+
+      // Volta na garagem, sem sinal.
+      final semSinal = ApiFalsa({'GET /leituras': const SemRede()});
+      final vm = await montar(semSinal, locais: locais);
+
+      expect(vm.erro, isNull);
+      expect(vm.linhas, hasLength(1));
+      expect(vm.linhas.single.identificacao, 'Kitnet 01');
+      expect(vm.linhas.single.agua.valorAnterior, 142.5);
+      expect(vm.offline, isTrue);
+      expect(vm.avisoDeSincronia, contains('Sem conexao'));
+    });
+
+    test('offline e sem nada guardado, nao ha o que mostrar', () async {
+      final vm = await montar(ApiFalsa({'GET /leituras': const SemRede()}));
+
+      expect(vm.linhas, isEmpty);
+      expect(vm.erro, isNotNull);
+      expect(vm.offline, isTrue);
+    });
+
+    test('salvar sem sinal guarda no aparelho em vez de perder', () async {
+      final locais = LeiturasLocais();
+      final api = comHistorico();
+      final vm = await montar(api, locais: locais);
+
+      digitar(vm, vm.linhas.single, 'energia', '3340');
+      api.rotas['POST /leituras'] = const SemRede();
+
+      // Devolve true: o valor esta a salvo, so nao chegou. Para quem
+      // digitou, sair da tela agora nao perde nada.
+      expect(await vm.salvar(), isTrue);
+      expect(vm.erro, isNull);
+      expect(vm.sucesso, contains('Guardado no aparelho'));
+      expect(vm.linhas.single.pendenteEnergia, isTrue);
+      expect(vm.temPendencia, isTrue);
+
+      expect(await locais.pendencias(1, '2026-11'), {'1:energia': 3340.0});
+    });
+
+    test('a pendencia volta preenchida e marcada quando a tela reabre',
+        () async {
+      final locais = LeiturasLocais();
+      final api = comHistorico();
+      final vm = await montar(api, locais: locais);
+
+      digitar(vm, vm.linhas.single, 'energia', '3340');
+      api.rotas['POST /leituras'] = const SemRede();
+      await vm.salvar();
+
+      // Reabre, ainda sem sinal.
+      final reaberta = await montar(
+        ApiFalsa({'GET /leituras': const SemRede()}),
+        locais: locais,
+      );
+
+      expect(reaberta.linhas.single.controllerEnergia.text, '3340');
+      expect(reaberta.linhas.single.pendenteEnergia, isTrue);
+      expect(reaberta.avisoDeSincronia,
+          '1 leitura guardada no aparelho. Toque em salvar quando tiver sinal.');
+    });
+
+    test('a tarja conta medidores, nao unidades', () async {
+      final locais = LeiturasLocais();
+      final api = comHistorico();
+      final vm = await montar(api, locais: locais);
+
+      digitar(vm, vm.linhas.single, 'agua', '149,5');
+      digitar(vm, vm.linhas.single, 'energia', '3340');
+      api.rotas['POST /leituras'] = const SemRede();
+      await vm.salvar();
+
+      expect(vm.avisoDeSincronia, startsWith('2 leituras guardadas'));
+    });
+
+    test('voltando o sinal, salvar limpa a pendencia', () async {
+      final locais = LeiturasLocais();
+      final api = comHistorico();
+      final vm = await montar(api, locais: locais);
+
+      digitar(vm, vm.linhas.single, 'energia', '3340');
+      api.rotas['POST /leituras'] = const SemRede();
+      await vm.salvar();
+      expect(vm.temPendencia, isTrue);
+
+      api.rotas['POST /leituras'] = <Object>[];
+      expect(await vm.salvar(), isTrue);
+
+      expect(vm.sucesso, 'Leituras salvas');
+      expect(vm.temPendencia, isFalse);
+      expect(vm.offline, isFalse);
+      expect(await locais.pendencias(1, '2026-11'), isEmpty);
+    });
+
+    test('recusa do servidor nao vira pendencia', () async {
+      final locais = LeiturasLocais();
+      final api = comHistorico();
+      final vm = await montar(api, locais: locais);
+
+      digitar(vm, vm.linhas.single, 'energia', '3340');
+      api.rotas['POST /leituras'] =
+          const Falha(422, 'Kitnet 01: leitura de energia e menor que a anterior');
+
+      // Repetir um 422 mais tarde daria 422 de novo: guardar na fila so
+      // adiaria o problema e deixaria quem digitou achando que resolveu.
+      expect(await vm.salvar(), isFalse);
+      expect(vm.erro, contains('menor que a anterior'));
+      expect(vm.temPendencia, isFalse);
+      expect(await locais.pendencias(1, '2026-11'), isEmpty);
+    });
+
+    test('erro de autenticacao sobe, nao cai no cache', () async {
+      final locais = LeiturasLocais();
+      await montar(comHistorico(), locais: locais);
+
+      final vm = await montar(
+        ApiFalsa({'GET /leituras': const Falha(401, 'Sessao expirada')}),
+        locais: locais,
+      );
+
+      expect(vm.erro, 'Sessao expirada');
+      expect(vm.offline, isFalse, reason: 'o servidor respondeu, e recusou');
+      expect(vm.linhas, isEmpty);
+    });
   });
 }

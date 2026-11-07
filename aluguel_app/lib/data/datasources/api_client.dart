@@ -12,7 +12,16 @@ class ApiException implements Exception {
   const ApiException(this.mensagem, {this.status});
 
   final String mensagem;
+
+  /// Nulo quando a requisicao nem chegou a ter resposta.
   final int? status;
+
+  /// Nao foi o servidor que recusou: foi a rede que nao deixou chegar.
+  ///
+  /// E a diferenca que separa "guarda no aparelho e tenta depois" de
+  /// "corrige o que voce mandou": repetir um 422 mais tarde vai dar 422
+  /// de novo, repetir uma falha de rede pode dar certo.
+  bool get semRede => status == null;
 
   @override
   String toString() => mensagem;

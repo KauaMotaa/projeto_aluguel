@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/state/competencia_store.dart';
 import 'core/theme/app_theme.dart';
 import 'data/datasources/api_client.dart';
+import 'data/datasources/leituras_locais.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/cadastro_repository.dart';
 import 'data/repositories/cobranca_repository.dart';
@@ -18,6 +19,8 @@ import 'features/auth/viewmodel/login_viewmodel.dart';
 import 'features/unidades/viewmodel/painel_viewmodel.dart';
 
 void main() {
+  // O cache de leituras usa SharedPreferences, que precisa do binding.
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const AluguelApp());
 }
 
@@ -36,9 +39,15 @@ class AluguelApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider(create: (_) => ApiClient()),
+        Provider(create: (_) => LeiturasLocais()),
         Provider(create: (ctx) => AuthRepository(ctx.read<ApiClient>())),
         Provider(create: (ctx) => ImovelRepository(ctx.read<ApiClient>())),
-        Provider(create: (ctx) => LeituraRepository(ctx.read<ApiClient>())),
+        Provider(
+          create: (ctx) => LeituraRepository(
+            ctx.read<ApiClient>(),
+            ctx.read<LeiturasLocais>(),
+          ),
+        ),
         Provider(create: (ctx) => FechamentoRepository(ctx.read<ApiClient>())),
         Provider(create: (ctx) => FaturaRepository(ctx.read<ApiClient>())),
         Provider(create: (ctx) => InquilinoRepository(ctx.read<ApiClient>())),

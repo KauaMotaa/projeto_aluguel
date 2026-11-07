@@ -73,6 +73,13 @@ class _LeiturasView extends StatelessWidget {
               : ListView(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
+                    if (vm.avisoDeSincronia != null) ...[
+                      _TarjaSincronia(
+                        mensagem: vm.avisoDeSincronia!,
+                        pendente: vm.temPendencia,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                    ],
                     for (final linha in vm.linhas) ...[
                       AppCard(
                         child: Column(
@@ -189,6 +196,50 @@ class _LeiturasView extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+/// Tarja do topo: ou a tela abriu sem rede, ou ha leitura esperando sinal.
+///
+/// Pendencia e ambar e offline e cinza porque sao coisas diferentes: uma
+/// pede uma acao de quem esta usando, a outra so explica por que os
+/// numeros podem estar velhos.
+class _TarjaSincronia extends StatelessWidget {
+  const _TarjaSincronia({required this.mensagem, required this.pendente});
+
+  final String mensagem;
+  final bool pendente;
+
+  @override
+  Widget build(BuildContext context) {
+    final cor = pendente ? AppColors.warning : AppColors.textSecondary;
+    final fundo =
+        pendente ? AppColors.warningSurface : AppColors.surfaceMuted;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.sm + AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: fundo,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSmall),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            pendente ? Icons.cloud_upload_outlined : Icons.cloud_off_outlined,
+            size: 16,
+            color: cor,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              mensagem,
+              style: AppTypography.caption.copyWith(fontSize: 12, color: cor),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../data/datasources/api_client.dart';
+import '../../../data/datasources/leituras_locais.dart';
 import '../../../data/models/leitura.dart';
 import '../../../data/repositories/leitura_repository.dart';
 
@@ -33,6 +34,12 @@ class LinhaLeitura {
 
   bool get temAviso => avisoAgua != null || avisoEnergia != null;
 
+  /// Digitado no aparelho e ainda nao aceito pela API.
+  bool pendenteAgua = false;
+  bool pendenteEnergia = false;
+
+  bool get temPendencia => pendenteAgua || pendenteEnergia;
+
   void dispose() {
     controllerAgua.dispose();
     controllerEnergia.dispose();
@@ -56,6 +63,7 @@ class LeiturasViewModel extends ChangeNotifier {
 
   bool _carregando = false;
   bool _salvando = false;
+  bool _offline = false;
   String? _erro;
   String? _sucesso;
   List<LinhaLeitura> _linhas = [];
@@ -65,6 +73,33 @@ class LeiturasViewModel extends ChangeNotifier {
   String? get erro => _erro;
   String? get sucesso => _sucesso;
   List<LinhaLeitura> get linhas => _linhas;
+
+  /// A tela abriu com o espelho guardado no aparelho porque a API nao
+  /// respondeu. Os valores anteriores podem estar velhos.
+  bool get offline => _offline;
+
+  /// Ha leitura digitada que a API ainda nao aceitou.
+  bool get temPendencia => _linhas.any((l) => l.temPendencia);
+
+  /// Tarja do topo da tela. Nula quando nao ha nada de anormal.
+  String? get avisoDeSincronia {
+    // Conta medidores, nao unidades: agua e energia da mesma kitnet sao
+    // dois lancamentos e podem ficar pendentes separados.
+    final pendentes = _linhas.fold<int>(
+      0,
+      (soma, l) => soma + (l.pendenteAgua ? 1 : 0) + (l.pendenteEnergia ? 1 : 0),
+    );
+    if (pendentes > 0) {
+      final leituras =
+          pendentes == 1 ? 'leitura guardada' : 'leituras guardadas';
+      return '$pendentes $leituras no aparelho. '
+          'Toque em salvar quando tiver sinal.';
+    }
+    if (_offline) {
+      return 'Sem conexao. Mostrando o que foi carregado da ultima vez.';
+    }
+    return null;
+  }
 
   String get competenciaFormatada => Formatters.competencia(competencia);
 
@@ -103,11 +138,12 @@ class LeiturasViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final leituras =
+      final doMes =
           await _repo.listar(competencia: competencia, imovelId: imovelId);
+      _offline = doMes.doCache;
 
       final porUnidade = <int, List<Leitura>>{};
-      for (final leitura in leituras) {
+      for (final leitura in doMes.leituras) {
         porUnidade.putIfAbsent(leitura.unidadeId, () => []).add(leitura);
       }
 
@@ -134,19 +170,46 @@ class LeiturasViewModel extends ChangeNotifier {
         return linha;
       }).toList();
 
+      // O que ficou pendente no aparelho entra por cima do que veio da
+      // API: e mais recente, foi digitado depois.
+      _aplicarPendencias(doMes.pendentes);
+
       // O que ja estava lancado tambem passa pela conferencia: o mes pode
       // ter sido digitado errado antes, e so agora ha historico para ver.
       for (final linha in _linhas) {
-        linha.avisoAgua = _foraDoPadrao(linha.agua, linha.agua.valorAtual);
-        linha.avisoEnergia =
-            _foraDoPadrao(linha.energia, linha.energia.valorAtual);
+        linha.avisoAgua = _foraDoPadrao(
+            linha.agua, _digitado(linha.controllerAgua));
+        linha.avisoEnergia = _foraDoPadrao(
+            linha.energia, _digitado(linha.controllerEnergia));
       }
     } on ApiException catch (e) {
       _erro = e.mensagem;
       _linhas = [];
+      _offline = e.semRede;
     } finally {
       _carregando = false;
       notifyListeners();
+    }
+  }
+
+  static double? _digitado(TextEditingController controller) =>
+      double.tryParse(controller.text.replaceAll(',', '.'));
+
+  /// Preenche os campos com o que ficou esperando sinal e marca as linhas.
+  void _aplicarPendencias(Map<String, double> pendentes) {
+    for (final linha in _linhas) {
+      final agua = pendentes[LeiturasLocais.chaveDe(linha.unidadeId, 'agua')];
+      if (agua != null) {
+        linha.controllerAgua.text = Formatters.numero(agua);
+        linha.pendenteAgua = true;
+      }
+
+      final energia =
+          pendentes[LeiturasLocais.chaveDe(linha.unidadeId, 'energia')];
+      if (energia != null) {
+        linha.controllerEnergia.text = Formatters.numero(energia, casas: 0);
+        linha.pendenteEnergia = true;
+      }
     }
   }
 
@@ -222,9 +285,8 @@ class LeiturasViewModel extends ChangeNotifier {
 
     final corpo = <Map<String, dynamic>>[];
     for (final linha in _linhas) {
-      final agua = double.tryParse(linha.controllerAgua.text.replaceAll(',', '.'));
-      final energia =
-          double.tryParse(linha.controllerEnergia.text.replaceAll(',', '.'));
+      final agua = _digitado(linha.controllerAgua);
+      final energia = _digitado(linha.controllerEnergia);
       if (agua != null) {
         corpo.add({'unidade_id': linha.unidadeId, 'tipo': 'agua', 'valor_atual': agua});
       }
@@ -238,11 +300,40 @@ class LeiturasViewModel extends ChangeNotifier {
     }
 
     try {
-      await _repo.lancar(competencia: competencia, leituras: corpo);
-      _sucesso = 'Leituras salvas';
-      return true;
-    } on ApiException catch (e) {
-      _erro = e.mensagem;
+      final resultado = await _repo.lancar(
+        competencia: competencia,
+        imovelId: imovelId,
+        leituras: corpo,
+      );
+
+      if (resultado.aceito) {
+        _offline = false;
+        for (final linha in _linhas) {
+          linha.pendenteAgua = false;
+          linha.pendenteEnergia = false;
+        }
+        _sucesso = 'Leituras salvas';
+        return true;
+      }
+
+      if (resultado.guardadoLocalmente) {
+        // Nao e sucesso nem erro: o valor esta a salvo, so nao chegou.
+        // Sair da tela agora nao perde nada, e e isso que precisa ficar
+        // claro para quem esta na garagem sem sinal.
+        _offline = true;
+        _aplicarPendencias({
+          for (final leitura in corpo)
+            LeiturasLocais.chaveDe(
+              leitura['unidade_id'] as int,
+              leitura['tipo'] as String,
+            ): leitura['valor_atual'] as double,
+        });
+        _sucesso = 'Sem sinal. Guardado no aparelho — '
+            'toque em salvar de novo quando tiver rede.';
+        return true;
+      }
+
+      _erro = resultado.erro;
       return false;
     } finally {
       _salvando = false;
