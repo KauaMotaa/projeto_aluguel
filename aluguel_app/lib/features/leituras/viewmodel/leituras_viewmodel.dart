@@ -32,12 +32,19 @@ class LinhaLeitura {
 }
 
 class LeiturasViewModel extends ChangeNotifier {
-  LeiturasViewModel(this._repo, {required this.imovelId});
+  LeiturasViewModel(
+    this._repo, {
+    required this.imovelId,
+    required this.competencia,
+  });
 
   final LeituraRepository _repo;
   final int imovelId;
 
-  static const String competencia = '2026-11';
+  /// Vem do seletor do painel, pelo CompetenciaStore. Chega pronto no
+  /// construtor porque esta tela trabalha num mes fixo enquanto esta
+  /// aberta: nao ha como trocar de mes daqui.
+  final String competencia;
 
   bool _carregando = false;
   bool _salvando = false;

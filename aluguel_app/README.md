@@ -28,21 +28,25 @@ lib/
 ├── main.dart                 injeção de dependência com provider
 ├── core/
 │   ├── config/               endereço da API
+│   ├── state/                CompetenciaStore: o mês que o app olha
 │   ├── theme/                tokens de cor, tipografia, espaçamento
 │   ├── utils/                formatadores de moeda, data e consumo
 │   └── widgets/              componentes do design system
 ├── data/
 │   ├── models/               Unidade, Leitura, Fatura, Previa, Imovel,
-│   │                         Usuario, Cobranca, Consumo
+│   │                         Usuario, Cobranca, Consumo, Competencia,
+│   │                         Pagamento, Inquilino, Contrato
 │   ├── datasources/          ApiClient
 │   └── repositories/         auth, imovel, leitura, fatura, fechamento,
-│                             inquilino
+│                             inquilino, cobranca, cadastro, competencia
 └── features/
     ├── auth/                 view/ + viewmodel/
     ├── unidades/             view/ + viewmodel/
     ├── leituras/             view/ + viewmodel/
     ├── faturas/              view/ + viewmodel/
     ├── fechamento/           view/ + viewmodel/
+    ├── cobrancas/            view/ + viewmodel/
+    ├── cadastro/             view/ + viewmodel/
     └── inquilino/            view/ + viewmodel/
 ```
 
@@ -57,6 +61,65 @@ de inquilino, então mandar os dois para a mesma tela dava erro de permissão
 na cara do usuário. O inquilino tem duas rotas próprias
 (`/minhas-cobrancas` e `/meu-consumo`), e nenhuma delas leva id: a API
 resolve de quem são os dados pelo token.
+
+## O mês mora num lugar só
+
+A competência é o único filtro do app do proprietário: painel, leituras,
+fatura e prévia falam todos do mesmo mês. Ela mora no
+`CompetenciaStore`, em `core/state/`, que é um `ChangeNotifier` global —
+nem repository nem ViewModel de tela.
+
+A lista de meses vem da API, de `GET /competencias`, e não de um cálculo de
+calendário. Quem sabe onde os lançamentos começam é o servidor; um
+intervalo inventado no cliente ofereceria meses vazios. O painel carrega
+essa lista antes dos dados e o store seleciona o mês mais recente.
+
+Quem lê o valor, lê de lá:
+
+| Quem | Como recebe |
+| --- | --- |
+| `PainelViewModel` | o store injetado, porque o seletor vive no painel |
+| `LeiturasViewModel`, `FaturasViewModel`, `PreviaViewModel` | uma `String` no construtor |
+
+As três telas recebem o mês pronto porque trabalham num mês fixo enquanto
+estão abertas — não há como trocar de dentro delas, e uma `String` deixa o
+ViewModel testável sem o store. Trocar o mês é `selecionar` no store
+seguido de recarregar o painel, e isso acontece em um lugar só: a
+`CompetenciaSheet`, que é a única que escreve nesse valor.
+
+O `CompetenciaSheet` fica em `features/unidades/view/`, e não em
+`core/widgets/`, justamente porque lê estado: os componentes do design
+system recebem tudo por parâmetro.
+
+## O painel é a porta das ações
+
+O card da unidade leva a uma coisa diferente conforme o estado dela, e a
+nenhuma quando não há o que fazer:
+
+| Estado da unidade | Toque leva a |
+| --- | --- |
+| vaga | contrato de aluguel |
+| ocupada, cobrança aberta ou atrasada | registro do pagamento |
+| ocupada, mês não fechado ou cobrança paga | nada, o card fica parado |
+
+É por isso que `_CardUnidade` recebe um `onToque` que pode ser nulo, e não
+um booleano: quem decide qual das duas ações cabe é o `PainelViewModel`,
+que tem a cobrança na mão. Um card clicável que não faz nada é pior que um
+parado.
+
+O **pagamento** abre em folha, não em tela cheia: três campos não pagam uma
+navegação, e quem registra um recebimento está olhando a lista e volta para
+ela. O valor vem preenchido com o total mas fica editável, porque a API
+aceita pagamento parcial e só marca a cobrança como paga quando a soma dos
+lançamentos cobre o total — quem decide o status é ela, e a folha avisa, ao
+digitar menos, que a cobrança vai continuar aberta pela diferença.
+
+O **cadastro** são duas telas, e separadas de propósito: a unidade nasce
+vaga, pelo botão do painel, e o contrato entra depois, pelo card dela. É o
+que permite cadastrar a kitnet enquanto ela está sendo construída, antes de
+haver inquilino. No contrato, a pessoa pode ser alguém já cadastrado ou um
+nome novo — nesse caso são duas chamadas, a pessoa primeiro, porque o
+contrato precisa do id dela.
 
 ## Design system
 
@@ -107,6 +170,7 @@ ponto do padrão.
 
 - **Trocar o endereço da API**: `core/config/api_config.dart`
 - **Mudar a paleta**: `core/theme/app_colors.dart`
+- **Mexer no mês**: `core/state/competencia_store.dart` — é o único lugar
 - **Adicionar uma tela**: nova pasta em `features/`, com `view/` e
   `viewmodel/`, e registre o ViewModel em `main.dart` se ele for global
   (os de tela ficam num `ChangeNotifierProvider` local, como em
@@ -114,8 +178,12 @@ ponto do padrão.
 
 ## O que falta
 
-Registro de pagamento pelo app (a API já tem
-`POST /cobrancas/{id}/pagamento`), cadastro de unidade e contrato, e seletor
-de competência — o mês está fixo em `2026-11`, que é o que o mock carrega, e
-hoje mora em quatro `static const competencia` espalhados pelos ViewModels.
-Quando o seletor entrar, ele é que vira a fonte única desse valor.
+Cadastro de **ponto** (imóvel) — hoje só dá para adicionar unidade a um
+ponto que já existe, e a API também não tem `POST /imoveis`. Encerramento
+de contrato, que a API representa com `data_fim` e `ativo` mas não expõe em
+rota nenhuma. Histórico de pagamentos de uma cobrança: a API guarda cada
+lançamento, e o app só mostra o status que sai deles.
+
+E nenhum teste automatizado. Os ViewModels são a parte que mais pediria:
+recebem repository e competência por construtor justamente para poderem ser
+testados sem tela nem HTTP.

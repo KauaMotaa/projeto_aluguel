@@ -6,12 +6,18 @@ import '../../../data/models/previa.dart';
 import '../../../data/repositories/fechamento_repository.dart';
 
 class PreviaViewModel extends ChangeNotifier {
-  PreviaViewModel(this._repo, {required this.imovelId});
+  PreviaViewModel(
+    this._repo, {
+    required this.imovelId,
+    required this.competencia,
+  });
 
   final FechamentoRepository _repo;
   final int imovelId;
 
-  static const String competencia = '2026-11';
+  /// Vem do seletor do painel, pelo CompetenciaStore. E o mes que vai ser
+  /// fechado, entao fica fixo enquanto a tela existe.
+  final String competencia;
 
   bool _carregando = false;
   bool _fechando = false;

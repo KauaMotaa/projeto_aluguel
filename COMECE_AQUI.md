@@ -25,19 +25,20 @@ O `--host 0.0.0.0` é o que permite o celular e o emulador enxergarem a API.
 Sem ele, só o próprio computador acessa.
 
 Nesta máquina já existe um ambiente pronto em `api_mock/.venv` (ignorado
-pelo git), e dele dá para subir direto, sem instalar nada:
+pelo git, montado com Python 3.13), e dele dá para subir direto, sem
+instalar nada:
 
 ```bash
 cd api_mock
 .venv/Scripts/python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Um aviso para quando você for instalar do zero: no Python 3.15 desta
-máquina o extra `uvicorn[standard]` não compila, porque o `pyyaml` dele
-precisa do compilador C da Microsoft. O `.venv` acima foi montado com
-`fastapi`, `uvicorn` e `pydantic` sem extras — o `--reload` funciona
-igual, só usa o vigia por data de arquivo em vez do nativo. Em Python 3.12
-ou 3.13 o `requirements.txt` instala inteiro, sem esse contorno.
+Um aviso para quando você for instalar do zero em outro lugar: em Python
+3.15 o extra `uvicorn[standard]` não compila, porque o `pyyaml` dele pede o
+compilador C da Microsoft. Nesse caso instale `fastapi`, `uvicorn` e
+`pydantic` sem extras — o `--reload` funciona igual, só usa o vigia por
+data de arquivo em vez do nativo. Em 3.12 ou 3.13 o `requirements.txt`
+instala inteiro, sem contorno.
 
 ## 2. Gerar as pastas de plataforma do Flutter
 
@@ -97,21 +98,34 @@ vai para o painel, inquilino vai para o painel dele.
 
 1. **Entrar** como proprietário.
 2. **Painel** com as unidades agrupadas por endereço, subtotal por ponto e
-   o total a receber no topo.
-3. **Leituras** — lançar água e energia de cada unidade, com a leitura
+   o total faturado no topo, mais a linha de quanto está em aberto e quanto
+   já foi recebido.
+3. **Trocar de mês** — toque no nome do mês, no cabeçalho. A lista vem da
+   API: os meses que têm lançamento, mais o mês corrente, com o quanto de
+   cada um já foi fechado. O mock carrega setembro, outubro e novembro de
+   2026.
+4. **Leituras** — lançar água e energia de cada unidade, com a leitura
    anterior ao lado e recusa de valor menor que ela.
-4. **Prévia do fechamento** — ver o rateio calculado unidade por unidade,
+5. **Prévia do fechamento** — ver o rateio calculado unidade por unidade,
    com os alertas que travam o fechamento. Se a fatura da concessionária
    estiver faltando, o alerta traz o atalho para lançá-la; se já estiver
    lançada, o cartão dela tem *Corrigir*.
-5. **Fatura da concessionária** — o valor da conta e o consumo do relógio
+6. **Fatura da concessionária** — o valor da conta e o consumo do relógio
    geral, um par por medidor. A tela mostra quanto os submedidores já
    somam e recusa consumo menor que isso.
-6. **Confirmar** e gerar as cobranças. Volte ao painel e puxe para baixo:
+7. **Confirmar** e gerar as cobranças. Volte ao painel e puxe para baixo:
    os status aparecem.
-7. **Sair** e entrar como `maria@exemplo.com`: o painel do inquilino mostra
-   as cobranças dela, com a quebra entre aluguel, água e energia, e o
-   histórico de consumo mês a mês.
+8. **Registrar o pagamento** — toque no card de uma unidade com cobrança
+   aberta. A folha mostra a quebra entre aluguel, água e energia, o valor
+   já preenchido com o total e a forma de pagamento.
+9. **Cadastrar uma unidade** — o botão *Nova unidade*, no canto do painel.
+   Ela nasce vaga.
+10. **Alugar** — toque num card vago, inclusive na Kitnet 03 que já vem
+    vazia. Dá para escolher alguém já cadastrado ou cadastrar um nome novo
+    ali mesmo.
+11. **Sair** e entrar como `maria@exemplo.com`: o painel do inquilino
+    mostra as cobranças dela, com a quebra entre aluguel, água e energia, e
+    o histórico de consumo mês a mês.
 
 O segundo ponto (Quadra 104 Sul) começa sem leitura e sem fatura. Abra a
 prévia dele para ver os dois alertas e o botão desabilitado — e, se quiser,
@@ -130,6 +144,26 @@ que a legenda mostra. O campo barra. Essa é a regra que a API não pega na
 entrada: ela aceita o lançamento e só acusa depois, na prévia, com
 `consumo_medido_acima_da_fatura`. Barrar no campo evita lançar, ir fechar e
 descobrir lá que não dá.
+
+No seletor de mês, vá para **outubro de 2026**. A Kitnet 02 está
+*atrasada*: toque nela e registre um pagamento **menor** que o total. A
+folha avisa, antes de salvar, que a cobrança fica aberta pela diferença — e
+depois de salvar ela continua atrasada no painel, porque a API só marca como
+paga quando a soma dos lançamentos cobre o total. Registre a diferença e o
+status vira *paga*. Tentar pagar de novo devolve 409, que aparece na folha.
+
+O cadastro tem um teste de duas pontas. Cadastre uma unidade nova no
+primeiro ponto, alugue ela, e **abra a prévia desse ponto**: o fechamento
+que antes passava agora trava, com `leitura_faltando` da unidade nova. É o
+rateio levando a unidade a sério — ela entra na divisão do consumo comum, e
+fechar sem a leitura dela jogaria a conta dessa kitnet nos vizinhos. Lance
+as leituras dela e a prévia volta a passar, com o rateio recalculado entre
+uma unidade a mais.
+
+Ainda no cadastro: tente dar à unidade nova um nome que já existe no ponto
+("Kitnet 01"). O campo barra. Essa validação é só do app — a API aceita
+nome repetido, e duas "Kitnet 01" no mesmo endereço são um problema na hora
+de lançar leitura, não agora.
 
 O último é a volta completa entre os dois perfis. Entre como proprietário,
 feche novembro no primeiro ponto, saia e entre como `maria@exemplo.com`:
