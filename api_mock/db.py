@@ -7,6 +7,7 @@ O cenario reproduz os mockups: dois pontos, quatro unidades no primeiro
 (uma delas vaga) e duas no segundo.
 """
 
+from datetime import date
 from itertools import count
 
 _ids = {nome: count(1) for nome in
@@ -207,3 +208,20 @@ def cobranca(cobranca_id: int) -> dict | None:
 
 def cobrancas_do_contrato(contrato_id: int) -> list[dict]:
     return [c for c in COBRANCAS if c["contrato_id"] == contrato_id]
+
+
+def competencias_com_dados() -> list[str]:
+    """Competencias que tem algum lancamento, mais o mes do calendario.
+
+    E o que alimenta o seletor de mes do app, da mais recente para a mais
+    antiga. O app nao tem como adivinhar esse intervalo: quem sabe onde os
+    lancamentos comecam e o servidor.
+
+    O mes corrente entra mesmo sem lancamento nenhum, senao nao haveria por
+    onde comecar um mes novo.
+    """
+    vistas = {registro["competencia"] for registro in LEITURAS}
+    vistas |= {registro["competencia"] for registro in FATURAS}
+    vistas |= {registro["competencia"] for registro in COBRANCAS}
+    vistas.add(date.today().strftime("%Y-%m"))
+    return sorted(vistas, reverse=True)

@@ -136,6 +136,32 @@ def criar_unidade(dados: m.UnidadeIn, _: dict = Depends(apenas_proprietario)):
     return _unidade_out(unidade, None)
 
 
+def _inquilino_out(pessoa: dict) -> dict:
+    ocupa = [db.unidade(c["unidade_id"])["identificacao"]
+             for c in db.CONTRATOS
+             if c["inquilino_id"] == pessoa["id"] and c["ativo"]]
+    return {**pessoa, "unidades": ocupa}
+
+
+@app.get(f"{V1}/inquilinos", response_model=list[m.InquilinoOut], tags=["cadastro"])
+def listar_inquilinos(_: dict = Depends(apenas_proprietario)):
+    """Pessoas cadastradas, para a tela de contrato escolher uma."""
+    return [_inquilino_out(pessoa) for pessoa in db.INQUILINOS]
+
+
+@app.post(f"{V1}/inquilinos", response_model=m.InquilinoOut, status_code=201,
+          tags=["cadastro"])
+def criar_inquilino(dados: m.InquilinoIn, _: dict = Depends(apenas_proprietario)):
+    """Cadastra uma pessoa sem contrato nenhum.
+
+    Fica separado do contrato de proposito: quem entra na kitnet nem sempre
+    assina no mesmo dia, e cadastrar a pessoa antes e o caso comum.
+    """
+    pessoa = {"id": db.proximo_id("inquilino"), **dados.model_dump()}
+    db.INQUILINOS.append(pessoa)
+    return _inquilino_out(pessoa)
+
+
 @app.post(f"{V1}/contratos", response_model=m.ContratoOut, status_code=201, tags=["cadastro"])
 def criar_contrato(dados: m.ContratoIn, _: dict = Depends(apenas_proprietario)):
     if not db.unidade(dados.unidade_id):
@@ -303,6 +329,32 @@ def lancar_faturas(imovel_id: int, dados: m.FaturasLoteIn,
                                "competencia": dados.competencia, **item.model_dump()})
     return {"imovel_id": imovel_id, "competencia": dados.competencia,
             "faturas_registradas": len(dados.faturas)}
+
+
+# --- competencias ---------------------------------------------------------
+
+@app.get(f"{V1}/competencias", response_model=list[m.CompetenciaOut],
+         tags=["fechamento"])
+def listar_competencias(_: dict = Depends(apenas_proprietario)):
+    """Meses que o seletor do app oferece, do mais recente para o mais antigo.
+
+    Existe para o app nao ter o mes escrito no codigo. A lista sai daqui
+    porque e a API que sabe onde os lancamentos comecam; um calculo de
+    calendario no cliente ofereceria meses vazios.
+    """
+    hoje = date.today().strftime("%Y-%m")
+    saida = []
+    for competencia in db.competencias_com_dados():
+        cobrancas = [c for c in db.COBRANCAS if c["competencia"] == competencia]
+        fechados = {db.unidade(c["unidade_id"])["imovel_id"] for c in cobrancas}
+        saida.append({
+            "competencia": competencia,
+            "cobrancas": len(cobrancas),
+            "imoveis_fechados": len(fechados),
+            "imoveis": len(db.IMOVEIS),
+            "atual": competencia == hoje,
+        })
+    return saida
 
 
 # --- previa e fechamento --------------------------------------------------

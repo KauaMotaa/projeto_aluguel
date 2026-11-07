@@ -56,6 +56,25 @@ class UnidadeOut(BaseModel):
     cobranca_total: Optional[int] = None
 
 
+class InquilinoIn(BaseModel):
+    nome: str = Field(min_length=2)
+    telefone: str = ""
+
+
+class InquilinoOut(BaseModel):
+    """Pessoa cadastrada, com as unidades que ela ocupa hoje.
+
+    As unidades vem junto porque a lista de nomes sozinha nao diz quem ja
+    esta alojado, e e isso que evita escolher por engano alguem que ja tem
+    contrato ativo.
+    """
+
+    id: int
+    nome: str
+    telefone: str = ""
+    unidades: list[str] = []
+
+
 class ContratoIn(BaseModel):
     unidade_id: int
     inquilino_id: int
@@ -126,6 +145,23 @@ class FaturaOut(BaseModel):
     valor_total: Optional[int] = None
     consumo_total: Optional[float] = None
     consumo_medido: float
+
+
+# --- competencias ---------------------------------------------------------
+
+class CompetenciaOut(BaseModel):
+    """Um mes no seletor do app.
+
+    O fechamento e por ponto, nao por mes: um mes pode estar fechado num
+    imovel e aberto no outro. Por isso aqui vem a contagem, e nao um
+    booleano `fechada` que mentiria na metade dos casos.
+    """
+
+    competencia: str
+    cobrancas: int
+    imoveis_fechados: int
+    imoveis: int
+    atual: bool = Field(description="e o mes do calendario")
 
 
 # --- previa e fechamento --------------------------------------------------
