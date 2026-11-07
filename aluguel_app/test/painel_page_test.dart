@@ -194,6 +194,40 @@ void main() {
     );
   });
 
+  testWidgets('a cobranca paga abre so para compartilhar', (tester) async {
+    final api = cenario();
+    api.rotas['GET /unidades'] = [
+      unidadeJson(1, cobrancaStatus: 'paga', cobrancaTotal: 100534),
+    ];
+    api.rotas['GET /cobrancas'] = [
+      cobrancaJson(1,
+          aluguel: 65000, agua: 12534, energia: 23000, status: 'paga'),
+    ];
+    await abrirPainel(tester, api);
+
+    await tester.tap(find.text('Kitnet 01'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cobranca paga'), findsOneWidget);
+    expect(find.text('Compartilhar com o inquilino'), findsOneWidget);
+    // A rota de pagamento devolve 409 para cobranca paga: oferecer o
+    // botao so serviria para dar erro.
+    expect(find.text('Registrar pagamento'), findsNothing);
+    expect(find.text('Forma'), findsNothing);
+  });
+
+  testWidgets('a cobranca em aberto abre com as duas acoes', (tester) async {
+    await abrirPainel(tester, cenario());
+
+    await tester.tap(find.text('Kitnet 01'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cobranca em aberto'), findsOneWidget);
+    expect(find.text('Compartilhar com o inquilino'), findsOneWidget);
+    expect(find.widgetWithText(ElevatedButton, 'Registrar pagamento'),
+        findsOneWidget);
+  });
+
   testWidgets('erro de rede mostra a tela de tentar de novo', (tester) async {
     await abrirPainel(tester, ApiFalsa({}));
 

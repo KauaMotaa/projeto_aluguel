@@ -78,13 +78,18 @@ void main() {
     expect(vm.resumoRecebimento, r'R$ 900,00 em aberto  ·  R$ 1.000,00 recebido');
   });
 
-  test('so da para receber onde ha cobranca em aberto', () async {
+  test('so ha cobranca para abrir onde o mes foi fechado', () async {
     final (vm, _) = await montar(cenario());
     final unidades = vm.grupos.single.unidades;
 
-    expect(vm.podeReceber(unidades[0]), isFalse, reason: 'ja esta paga');
-    expect(vm.podeReceber(unidades[1]), isTrue);
-    expect(vm.podeReceber(unidades[2]), isFalse, reason: 'esta vaga');
+    // A paga tambem abre: dela da para compartilhar a quebra, que e o
+    // comprovante do inquilino.
+    expect(vm.temCobranca(unidades[0]), isTrue, reason: 'paga, mas existe');
+    expect(vm.temCobranca(unidades[1]), isTrue);
+    expect(vm.temCobranca(unidades[2]), isFalse, reason: 'vaga, nem cobranca ha');
+
+    expect(vm.cobrancaDa(unidades[0])!.paga, isTrue);
+    expect(vm.cobrancaDa(unidades[1])!.paga, isFalse);
   });
 
   test('pede os dados da competencia escolhida, nao de uma constante',

@@ -19,6 +19,7 @@ class MeterInput extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     this.erro,
+    this.aviso,
   });
 
   final String rotulo;
@@ -27,6 +28,11 @@ class MeterInput extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String? erro;
+
+  /// Consumo fora do padrao da unidade. Nao e erro: o campo continua
+  /// valido e o botao de salvar segue ligado. Por isso ambar, e nao
+  /// vermelho, e por isso fica abaixo da legenda em vez de no lugar dela.
+  final String? aviso;
 
   String _legenda() {
     final casas = tipo == 'agua' ? 1 : 0;
@@ -69,6 +75,29 @@ class MeterInput extends StatelessWidget {
             color: erro != null ? AppColors.danger : AppColors.textSecondary,
           ),
         ),
+        if (aviso != null && erro == null) ...[
+          const SizedBox(height: 4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(Icons.error_outline,
+                    size: 13, color: AppColors.warning),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  aviso!,
+                  style: AppTypography.caption.copyWith(
+                    fontSize: 11,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

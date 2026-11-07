@@ -59,9 +59,17 @@ fecha exatamente com o valor da fatura, sem sobrar centavo.
 Como **proprietário**: painel das unidades agrupadas por ponto, com seletor
 de mês, lançamento das leituras dos submedidores, lançamento da fatura da
 concessionária, prévia do fechamento com os alertas que o travam, e geração
-das cobranças. Depois do fechamento, o registro do pagamento de cada
-cobrança — inclusive parcial, que deixa a cobrança aberta pela diferença. E
-o cadastro de unidade nova e do contrato que a aluga.
+das cobranças. Depois do fechamento, cada cobrança pode ser **compartilhada
+com o inquilino** pelo WhatsApp e ter o pagamento registrado — inclusive
+parcial, que deixa a cobrança aberta pela diferença. E o cadastro de
+unidade nova e do contrato que a aluga.
+
+Duas coisas resolvem o que mais atrapalha na prática. As **leituras
+funcionam sem sinal**: ler submedidor é na garagem, no quadro de luz, e o
+que for digitado ali fica guardado no aparelho até a rede voltar. E o app
+**avisa quando o consumo destoa** do que aquela unidade costuma gastar, que
+é como se pega a tecla a mais — 3650 no lugar de 365 passa pela regra de
+"não pode ser menor que a anterior", mas não passa pela média.
 
 Como **inquilino**: as cobranças dele, com a quebra entre aluguel, água e
 energia, e o histórico de consumo mês a mês.
@@ -72,9 +80,20 @@ energia, e o histórico de consumo mês a mês.
 cd aluguel_app && flutter test
 ```
 
-52 testes, nenhum deles precisa da API no ar: o dublê é o cliente HTTP de
-dentro do `ApiClient`, então o teste ainda passa pela conversão de JSON e
-pelo tratamento de erro de verdade.
+```bash
+cd api_mock && python -m pytest -q
+```
+
+93 testes: 78 do app e 15 do rateio. Nenhum dos do app precisa da API no
+ar — o dublê é o cliente HTTP de dentro do `ApiClient`, então o teste ainda
+passa pela conversão de JSON, pela query string e pelo tratamento de erro
+de verdade. E esse mesmo dublê sabe ficar sem rede, que é como se testa a
+fila offline.
+
+Os do rateio afirmam, contra 500 entradas sorteadas, que a soma das
+parcelas fecha exatamente com a fatura. Um deles compara o histórico do
+cenário com o que a conta produz, e achou um centavo fora do lugar nos
+dados de demonstração.
 
 Detalhes de arquitetura em [`aluguel_app/README.md`](aluguel_app/README.md)
 e das rotas em [`api_mock/README.md`](api_mock/README.md).

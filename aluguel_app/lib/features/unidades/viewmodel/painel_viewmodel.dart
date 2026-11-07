@@ -90,12 +90,11 @@ class PainelViewModel extends ChangeNotifier {
 
   Cobranca? cobrancaDa(Unidade unidade) => _porUnidade[unidade.id];
 
-  /// Da para registrar pagamento quando o mes da unidade ja foi fechado e
-  /// a cobranca ainda nao esta quitada.
-  bool podeReceber(Unidade unidade) {
-    final cobranca = _porUnidade[unidade.id];
-    return cobranca != null && !cobranca.paga;
-  }
+  /// O mes da unidade ja foi fechado, entao ha cobranca para abrir.
+  ///
+  /// Vale tambem para a que ja esta paga: dela ainda da para compartilhar
+  /// a quebra com o inquilino, que e o comprovante dele.
+  bool temCobranca(Unidade unidade) => _porUnidade.containsKey(unidade.id);
 
   Future<void> carregar() async {
     _carregando = true;

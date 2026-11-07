@@ -142,9 +142,9 @@ def _cobranca(contrato_id, unidade_id, identificacao, inquilino, competencia,
 # energia sao as que o rateio produz para as leituras acima: a soma das
 # parcelas de cada tipo fecha exatamente com a fatura da competencia.
 COBRANCAS: list[dict] = [
-    _cobranca(1, 1, "Kitnet 01", "Maria Souza", "2026-09", 65000, 12534, 23581, "paga", 10),
+    _cobranca(1, 1, "Kitnet 01", "Maria Souza", "2026-09", 65000, 12533, 23580, "paga", 10),
     _cobranca(2, 2, "Kitnet 02", "Jose Andrade", "2026-09", 62000, 10133, 21719, "paga", 10),
-    _cobranca(3, 4, "Kitnet 04", "Ana Ribeiro", "2026-09", 70000, 14133, 24200, "paga", 5),
+    _cobranca(3, 4, "Kitnet 04", "Ana Ribeiro", "2026-09", 70000, 14134, 24201, "paga", 5),
 
     _cobranca(1, 1, "Kitnet 01", "Maria Souza", "2026-10", 65000, 12267, 23706, "paga", 10),
     _cobranca(2, 2, "Kitnet 02", "Jose Andrade", "2026-10", 62000, 10667, 21211, "atrasada", 10),

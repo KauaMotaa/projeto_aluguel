@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -10,15 +11,19 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/value_row.dart';
 import '../../../data/models/cobranca.dart';
 import '../../../data/repositories/cobranca_repository.dart';
-import '../viewmodel/pagamento_viewmodel.dart';
+import '../viewmodel/cobranca_viewmodel.dart';
 
-/// Folha de registro de pagamento de uma cobranca.
+/// Folha de uma cobranca: compartilhar com o inquilino e receber.
 ///
 /// E folha, e nao tela cheia, porque o painel e o contexto do gesto: quem
 /// registra um recebimento esta olhando a lista de unidades e volta para
 /// ela. Uma navegacao inteira para tres campos custaria mais do que rende.
-class PagamentoSheet {
-  const PagamentoSheet._();
+///
+/// Quitada, ela mostra so a quebra e o botao de compartilhar — a rota de
+/// pagamento recusa cobranca paga com 409, e oferecer um botao que so
+/// serve para dar erro e pior do que nao oferecer.
+class CobrancaSheet {
+  const CobrancaSheet._();
 
   /// Abre a folha e devolve a mensagem de confirmacao quando um pagamento
   /// foi registrado, ou `null` quando se saiu sem registrar nada. Quem
@@ -39,26 +44,39 @@ class PagamentoSheet {
         ),
       ),
       builder: (_) => ChangeNotifierProvider(
-        create: (_) => PagamentoViewModel(repo, cobranca: cobranca),
-        child: const _PagamentoView(),
+        create: (_) => CobrancaViewModel(repo, cobranca: cobranca),
+        child: const _CobrancaView(),
       ),
     );
   }
 }
 
-class _PagamentoView extends StatelessWidget {
-  const _PagamentoView();
+class _CobrancaView extends StatelessWidget {
+  const _CobrancaView();
 
   Future<void> _salvar(BuildContext context) async {
-    final vm = context.read<PagamentoViewModel>();
+    final vm = context.read<CobrancaViewModel>();
     final salvou = await vm.salvar();
     if (!salvou) return; // o erro fica visivel na propria folha
     if (context.mounted) Navigator.of(context).pop(vm.confirmacao);
   }
 
+  /// Entrega o texto ao menu de compartilhar do sistema. A folha fica
+  /// aberta: quem compartilhou pode querer registrar o pagamento em
+  /// seguida, e fechar aqui obrigaria a tocar no card de novo.
+  Future<void> _compartilhar(BuildContext context) async {
+    final vm = context.read<CobrancaViewModel>();
+    await SharePlus.instance.share(
+      ShareParams(
+        text: vm.textoParaCompartilhar,
+        subject: vm.assuntoParaCompartilhar,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<PagamentoViewModel>();
+    final vm = context.watch<CobrancaViewModel>();
 
     return Padding(
       // Sobe com o teclado: sem isso o campo de valor fica atras dele.
@@ -84,9 +102,29 @@ class _PagamentoView extends StatelessWidget {
                 ),
               ),
             ),
-            const Text('Registrar pagamento', style: AppTypography.title),
-            const SizedBox(height: 2),
-            Text(vm.titulo, style: AppTypography.caption),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        vm.quitada ? 'Cobranca paga' : 'Cobranca em aberto',
+                        style: AppTypography.title,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(vm.titulo, style: AppTypography.caption),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => _compartilhar(context),
+                  tooltip: 'Compartilhar',
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.md),
             AppCard(
               child: Column(
@@ -103,11 +141,21 @@ class _PagamentoView extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '${vm.competenciaFormatada}  ·  vence ${vm.vencimentoFormatado}',
+              vm.quitada
+                  ? vm.competenciaFormatada
+                  : '${vm.competenciaFormatada}  ·  vence ${vm.vencimentoFormatado}',
               style: AppTypography.caption.copyWith(fontSize: 11),
             ),
-            const SizedBox(height: AppSpacing.md),
-            const Text('Valor recebido', style: AppTypography.caption),
+            const SizedBox(height: AppSpacing.lg),
+            AppButton.secondary(
+              label: 'Compartilhar com o inquilino',
+              onPressed: () => _compartilhar(context),
+            ),
+            // Paga nao tem o que receber: a rota de pagamento devolve 409.
+            if (vm.quitada) const SizedBox(height: AppSpacing.sm),
+            if (!vm.quitada) ...[
+              const SizedBox(height: AppSpacing.lg),
+              const Text('Valor recebido', style: AppTypography.caption),
             const SizedBox(height: 5),
             TextField(
               controller: vm.controllerValor,
@@ -140,7 +188,7 @@ class _PagamentoView extends StatelessWidget {
               spacing: AppSpacing.sm,
               runSpacing: AppSpacing.sm,
               children: [
-                for (final entrada in PagamentoViewModel.formas.entries)
+                for (final entrada in CobrancaViewModel.formas.entries)
                   ChoiceChip(
                     label: Text(entrada.value),
                     selected: vm.forma == entrada.key,
@@ -185,12 +233,13 @@ class _PagamentoView extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: AppSpacing.lg),
-            AppButton.primary(
-              label: 'Registrar pagamento',
-              carregando: vm.salvando,
-              onPressed: vm.podeSalvar ? () => _salvar(context) : null,
-            ),
+              const SizedBox(height: AppSpacing.lg),
+              AppButton.primary(
+                label: 'Registrar pagamento',
+                carregando: vm.salvando,
+                onPressed: vm.podeSalvar ? () => _salvar(context) : null,
+              ),
+            ],
           ],
         ),
       ),

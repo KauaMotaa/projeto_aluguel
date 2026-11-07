@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:aluguel_app/data/datasources/api_client.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,15 @@ class Falha {
 
   final int status;
   final Object detalhe;
+}
+
+/// A requisicao nem sai: e o celular sem sinal, nao o servidor recusando.
+///
+/// Vira uma [ApiException] sem status, que e como o [ApiClient] traduz
+/// qualquer falha de transporte — e e por esse `status` nulo que o
+/// repository sabe que vale guardar no aparelho e tentar depois.
+class SemRede {
+  const SemRede();
 }
 
 /// API de mentira para os testes.
@@ -36,6 +46,9 @@ class ApiFalsa {
     chamadas.add(pedido);
 
     final resposta = rotas[_chave(pedido)];
+    if (resposta is SemRede) {
+      throw const SocketException('sem sinal');
+    }
     if (resposta == null) {
       return _json({'detail': 'rota nao mapeada: ${_chave(pedido)}'}, 404);
     }
@@ -116,6 +129,28 @@ Map<String, Object?> unidadeJson(
       'valor_aluguel': valorAluguel,
       'cobranca_status': cobrancaStatus,
       'cobranca_total': cobrancaTotal,
+    };
+
+Map<String, Object?> leituraJson(
+  int unidadeId, {
+  String identificacao = 'Kitnet 01',
+  String tipo = 'energia',
+  String competencia = '2026-11',
+  double valorAnterior = 3180,
+  double? valorAtual,
+  double? mediaConsumo,
+  int mesesHistorico = 0,
+}) =>
+    {
+      'unidade_id': unidadeId,
+      'identificacao': identificacao,
+      'tipo': tipo,
+      'competencia': competencia,
+      'valor_anterior': valorAnterior,
+      'valor_atual': valorAtual,
+      'consumo': valorAtual == null ? null : valorAtual - valorAnterior,
+      'media_consumo': mediaConsumo,
+      'meses_historico': mesesHistorico,
     };
 
 Map<String, Object?> cobrancaJson(
