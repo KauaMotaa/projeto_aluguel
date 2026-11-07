@@ -6,14 +6,20 @@ import '../../../data/models/cobranca.dart';
 import '../../../data/models/pagamento.dart';
 import '../../../data/repositories/cobranca_repository.dart';
 
-/// Registro do pagamento de uma cobranca.
+/// Uma cobranca aberta a partir do painel: o que se pode fazer com ela.
 ///
-/// O valor comeca preenchido com o total, que e o caso normal, mas fica
-/// editavel: a API aceita pagamento parcial e soma os lancamentos, so
-/// marcando a cobranca como paga quando eles cobrem o total. Esconder isso
-/// num botao de "marcar como paga" jogaria fora metade do que a rota faz.
-class PagamentoViewModel extends ChangeNotifier {
-  PagamentoViewModel(this._repo, {required this.cobranca, DateTime? hoje})
+/// Sao duas coisas. **Compartilhar** manda a quebra para o inquilino pelo
+/// app que ele ja usa — sem isso o calculo so existe para quem instalou
+/// este aqui, e inquilino de kitnet nao instala. **Registrar o pagamento**
+/// fecha o ciclo do lado do dono.
+///
+/// No pagamento, o valor comeca preenchido com o total, que e o caso
+/// normal, mas fica editavel: a API aceita pagamento parcial e soma os
+/// lancamentos, so marcando a cobranca como paga quando eles cobrem o
+/// total. Esconder isso num botao de "marcar como paga" jogaria fora
+/// metade do que a rota faz.
+class CobrancaViewModel extends ChangeNotifier {
+  CobrancaViewModel(this._repo, {required this.cobranca, DateTime? hoje})
       : _hoje = hoje ?? DateTime.now() {
     controllerValor.text = Formatters.valor(cobranca.valorTotal);
   }
@@ -46,6 +52,10 @@ class PagamentoViewModel extends ChangeNotifier {
   Pagamento? get pagamento => _pagamento;
 
   int? get centavos => Formatters.centavos(controllerValor.text);
+
+  /// Cobranca ja quitada nao tem o que receber: a folha mostra so a
+  /// quebra e o botao de compartilhar.
+  bool get quitada => cobranca.paga;
 
   String get titulo => '${cobranca.identificacao}  ·  ${cobranca.inquilino}';
   String get aluguelFormatado => Formatters.moeda(cobranca.valorAluguel);
@@ -132,6 +142,36 @@ class PagamentoViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  // --- o texto que vai para o inquilino ----------------------------------
+
+  /// Assunto, para os destinos que tem um (e-mail, por exemplo).
+  String get assuntoParaCompartilhar =>
+      'Cobrança de ${cobranca.identificacao} — $competenciaFormatada';
+
+  /// A cobranca em texto, para o menu de compartilhar do sistema.
+  ///
+  /// Este texto sai do app e chega numa pessoa, entao vai acentuado, ao
+  /// contrario do resto da interface: "Agua" na tela do dono e um deslize
+  /// de estilo, "Agua" numa mensagem cobrando alguem e desleixo.
+  ///
+  /// A ultima linha e a que evita a discussao de todo mes. Sem ela o
+  /// inquilino soma a propria leitura, acha menos do que esta cobrado, e
+  /// a conversa comeca errada.
+  String get textoParaCompartilhar => [
+        '${cobranca.identificacao} — $competenciaFormatada',
+        '',
+        'Aluguel: $aluguelFormatado',
+        'Água: $aguaFormatada',
+        'Energia: $energiaFormatada',
+        'Total: $totalFormatado',
+        '',
+        if (quitada) 'Situação: pago'
+        else 'Vence em $vencimentoFormatado',
+        '',
+        'Água e energia incluem a parte da área comum do ponto, '
+            'dividida igualmente entre as unidades ocupadas.',
+      ].join('\n');
 
   /// Mensagem de confirmacao, depois de salvar. Quem decide se quitou e a
   /// API: ela soma os pagamentos anteriores, que o app nao conhece.

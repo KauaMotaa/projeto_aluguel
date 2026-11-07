@@ -1,6 +1,6 @@
 import 'package:aluguel_app/data/models/cobranca.dart';
 import 'package:aluguel_app/data/repositories/cobranca_repository.dart';
-import 'package:aluguel_app/features/cobrancas/viewmodel/pagamento_viewmodel.dart';
+import 'package:aluguel_app/features/cobrancas/viewmodel/cobranca_viewmodel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/api_falsa.dart';
@@ -16,7 +16,7 @@ void main() {
   /// Total da cobranca do cenario: R$ 1.011,15.
   const total = 65000 + 12534 + 23581;
 
-  PagamentoViewModel montar(ApiFalsa api) => PagamentoViewModel(
+  CobrancaViewModel montar(ApiFalsa api) => CobrancaViewModel(
         CobrancaRepository(api.cliente),
         cobranca: cobranca,
         hoje: DateTime(2026, 11, 7),
@@ -120,6 +120,74 @@ void main() {
     expect(await vm.salvar(), isFalse);
     expect(vm.erro, 'Cobranca ja esta paga');
     expect(vm.salvando, isFalse);
+  });
+
+  group('texto para compartilhar', () {
+    test('traz a quebra inteira, o vencimento e a explicacao do rateio', () {
+      final vm = montar(aceita());
+
+      expect(vm.textoParaCompartilhar, '''
+Kitnet 01 — Novembro de 2026
+
+Aluguel: R\$ 650,00
+Água: R\$ 125,34
+Energia: R\$ 235,81
+Total: R\$ 1.011,15
+
+Vence em 10/11/2026
+
+Água e energia incluem a parte da área comum do ponto, dividida igualmente entre as unidades ocupadas.''');
+    });
+
+    test('vai acentuado, porque sai do app e chega numa pessoa', () {
+      final vm = montar(aceita());
+
+      expect(vm.textoParaCompartilhar, contains('Água'));
+      expect(vm.textoParaCompartilhar, contains('área comum'));
+      expect(vm.assuntoParaCompartilhar,
+          'Cobrança de Kitnet 01 — Novembro de 2026');
+    });
+
+    test('explica o rateio, que e o que evita a discussao de todo mes', () {
+      // Sem essa linha o inquilino soma a propria leitura, acha menos do
+      // que esta cobrado, e a conversa comeca errada.
+      expect(montar(aceita()).textoParaCompartilhar,
+          contains('dividida igualmente entre as unidades ocupadas'));
+    });
+
+    test('cobranca paga troca o vencimento pela situacao', () {
+      final paga = Cobranca.fromJson(cobrancaJson(
+        7,
+        aluguel: 65000,
+        agua: 12534,
+        energia: 23581,
+        status: 'paga',
+      ));
+      final vm = CobrancaViewModel(
+        CobrancaRepository(aceita().cliente),
+        cobranca: paga,
+        hoje: DateTime(2026, 11, 7),
+      );
+
+      expect(vm.quitada, isTrue);
+      expect(vm.textoParaCompartilhar, contains('Situação: pago'));
+      expect(vm.textoParaCompartilhar, isNot(contains('Vence em')));
+    });
+
+    test('marco sai com cedilha', () {
+      final marco = Cobranca.fromJson(cobrancaJson(
+        7,
+        competencia: '2026-03',
+        vencimento: '2026-03-10',
+      ));
+      final vm = CobrancaViewModel(
+        CobrancaRepository(aceita().cliente),
+        cobranca: marco,
+        hoje: DateTime(2026, 3, 7),
+      );
+
+      expect(vm.textoParaCompartilhar, contains('Março de 2026'));
+    });
   });
 
   test('a forma comeca em pix e so muda para uma que a API aceita', () {

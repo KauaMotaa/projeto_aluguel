@@ -39,7 +39,9 @@ class Formatters {
   /// "2026-11" para "Novembro de 2026".
   static String competencia(String valor) {
     const meses = [
-      'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+      // "Marco" sem cedilha e outra palavra, e esse nome sai do app na
+      // cobranca que o inquilino recebe.
+      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
     ];
     final partes = valor.split('-');

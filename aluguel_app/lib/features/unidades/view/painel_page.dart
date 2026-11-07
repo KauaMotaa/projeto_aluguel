@@ -13,7 +13,7 @@ import '../../../data/models/unidade.dart';
 import '../../auth/view/login_page.dart';
 import '../../cadastro/view/contrato_form_page.dart';
 import '../../cadastro/view/unidade_form_page.dart';
-import '../../cobrancas/view/pagamento_sheet.dart';
+import '../../cobrancas/view/cobranca_sheet.dart';
 import '../../fechamento/view/previa_page.dart';
 import '../../leituras/view/leituras_page.dart';
 import '../viewmodel/painel_viewmodel.dart';
@@ -48,14 +48,19 @@ class _PainelPageState extends State<PainelPage> {
     }
   }
 
-  /// Registra o recebimento de uma cobranca e recarrega: o status, o
-  /// subtotal do ponto e a linha de recebido mudam todos com ele.
-  Future<void> _receber(Unidade unidade) async {
+  /// Abre a cobranca da unidade, de onde da para compartilhar com o
+  /// inquilino e registrar o recebimento.
+  ///
+  /// So recarrega se um pagamento foi registrado — e o que muda o status,
+  /// o subtotal do ponto e a linha de recebido. Compartilhar nao muda
+  /// nada do lado do servidor, e recarregar ali seria piscar a lista a
+  /// toa.
+  Future<void> _abrirCobranca(Unidade unidade) async {
     final vm = context.read<PainelViewModel>();
     final cobranca = vm.cobrancaDa(unidade);
     if (cobranca == null) return;
 
-    final mensagem = await PagamentoSheet.abrir(context, cobranca: cobranca);
+    final mensagem = await CobrancaSheet.abrir(context, cobranca: cobranca);
     if (mensagem == null || !mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -202,8 +207,8 @@ class _PainelPageState extends State<PainelPage> {
               // O card e a porta das duas acoes da unidade: cobranca
               // aberta leva ao recebimento, unidade vaga leva ao
               // contrato. Nenhuma das duas, e ele fica parado.
-              onToque: vm.podeReceber(unidade)
-                  ? () => _receber(unidade)
+              onToque: vm.temCobranca(unidade)
+                  ? () => _abrirCobranca(unidade)
                   : unidade.ocupada
                       ? null
                       : () => _alugar(unidade, grupo.imovel.endereco),
