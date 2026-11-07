@@ -17,6 +17,25 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 O `--host 0.0.0.0` é o que permite o celular acessar pelo IP da máquina na
 mesma rede. No Flutter, mantenha essa URL base num arquivo de configuração.
 
+## Testes
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+15 testes, todos de `rateio.py`, que é função pura — o lugar mais barato
+de testar e o mais caro de errar. A propriedade principal tem dois: um
+caso escrito à mão e 500 entradas sorteadas com semente fixa, afirmando
+que **a soma das parcelas fecha exatamente com a fatura**. É a razão de
+existir do método do maior resto.
+
+Um dos testes compara as cobranças do cenário com o que o rateio produz.
+Ele reprovou na primeira execução: o histórico de setembro, escrito à
+mão, tinha um centavo na Kitnet 01 que pertencia à Kitnet 04. A soma
+fechava com a fatura, então nada quebrava — mas este README promete que
+aquele histórico sai desta conta, e não saía.
+
 ## Entrar
 
 | Perfil | Email | Senha |
@@ -70,6 +89,13 @@ intervalo calculado no cliente ofereceria meses vazios.
 `/inquilinos` traz, em cada pessoa, as unidades que ela ocupa hoje. A lista
 de nomes sozinha não diz quem já está alojado, e é isso que evita escolher
 por engano alguém que já tem contrato ativo.
+
+`/leituras` devolve, em cada linha, `media_consumo` e `meses_historico` —
+a média do que aquele medidor consumiu nas competências já fechadas, e de
+quantos meses ela saiu. Alimenta o aviso de leitura fora do padrão no app.
+O cálculo fica aqui porque é aqui que está o histórico: o app só conhece o
+mês aberto. `meses_historico` existe para o app não avisar com base em um
+mês só, que não é média de nada.
 
 ## Convenções
 

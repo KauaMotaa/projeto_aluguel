@@ -123,7 +123,10 @@ vai para o painel, inquilino vai para o painel dele.
 10. **Alugar** — toque num card vago, inclusive na Kitnet 03 que já vem
     vazia. Dá para escolher alguém já cadastrado ou cadastrar um nome novo
     ali mesmo.
-11. **Sair** e entrar como `maria@exemplo.com`: o painel do inquilino
+11. **Compartilhar a cobrança** — na mesma folha, o botão manda a quebra
+    para o inquilino pelo WhatsApp. Funciona também com a cobrança já
+    paga, que aí vale de comprovante.
+12. **Sair** e entrar como `maria@exemplo.com`: o painel do inquilino
     mostra as cobranças dela, com a quebra entre aluguel, água e energia, e
     o histórico de consumo mês a mês.
 
@@ -142,9 +145,17 @@ cd aluguel_app
 flutter test
 ```
 
-São 52 testes. Eles trocam o cliente HTTP por um de mentira, então passam
+São 78 testes. Eles trocam o cliente HTTP por um de mentira, então passam
 pela conversão de JSON e pelo tratamento de erro de verdade. Detalhe do
 que cobrem em [`aluguel_app/README.md`](aluguel_app/README.md).
+
+O rateio tem os seus, em Python:
+
+```bash
+cd api_mock
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest -q
+```
 
 ## Testes que valem fazer na mão
 
@@ -165,6 +176,20 @@ folha avisa, antes de salvar, que a cobrança fica aberta pela diferença — e
 depois de salvar ela continua atrasada no painel, porque a API só marca como
 paga quando a soma dos lançamentos cobre o total. Registre a diferença e o
 status vira *paga*. Tentar pagar de novo devolve 409, que aparece na folha.
+
+O teste que mais vale é o **sem sinal**, porque é o cenário real: ler
+submedidor é na garagem. Abra as leituras do primeiro ponto com o mock no
+ar, volte, e então **pare o uvicorn** (Ctrl-C). Abra as leituras de novo:
+a tela continua abrindo, com uma tarja dizendo que está mostrando o que
+foi carregado da última vez. Digite uma leitura e salve: em vez de erro,
+aparece "Guardado no aparelho". Volte e entre de novo — o valor está lá,
+marcado como pendente. Suba o uvicorn, toque em salvar, e a pendência some.
+
+Ainda nas leituras, digite um valor **dez vezes maior** que o normal
+daquela unidade (3650 no lugar de 365, por exemplo). O campo fica âmbar e
+diz quantas vezes passou da média. Note que o botão de salvar **continua
+ligado**: é aviso, não erro. Um mês de consumo alto acontece de verdade, e
+quem decide é quem está lá.
 
 O cadastro tem um teste de duas pontas. Cadastre uma unidade nova no
 primeiro ponto, alugue ela, e **abra a prévia desse ponto**: o fechamento

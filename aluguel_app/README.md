@@ -36,7 +36,7 @@ lib/
 │   ├── models/               Unidade, Leitura, Fatura, Previa, Imovel,
 │   │                         Usuario, Cobranca, Consumo, Competencia,
 │   │                         Pagamento, Inquilino, Contrato
-│   ├── datasources/          ApiClient
+│   ├── datasources/          ApiClient, LeiturasLocais (cache offline)
 │   └── repositories/         auth, imovel, leitura, fatura, fechamento,
 │                             inquilino, cobranca, cadastro, competencia
 └── features/
@@ -107,12 +107,26 @@ um booleano: quem decide qual das duas ações cabe é o `PainelViewModel`,
 que tem a cobrança na mão. Um card clicável que não faz nada é pior que um
 parado.
 
-O **pagamento** abre em folha, não em tela cheia: três campos não pagam uma
-navegação, e quem registra um recebimento está olhando a lista e volta para
-ela. O valor vem preenchido com o total mas fica editável, porque a API
-aceita pagamento parcial e só marca a cobrança como paga quando a soma dos
-lançamentos cobre o total — quem decide o status é ela, e a folha avisa, ao
-digitar menos, que a cobrança vai continuar aberta pela diferença.
+A **cobrança** abre em folha, não em tela cheia: quem mexe nela está
+olhando a lista e volta para ela. A folha tem duas ações.
+
+**Compartilhar** manda a quebra para o inquilino pelo menu do sistema —
+WhatsApp, na prática. Sem isso o cálculo só existe para quem instalou este
+app, e inquilino de kitnet não instala. O texto termina explicando que água
+e energia já incluem a parte da área comum: é a linha que evita a discussão
+de todo mês, porque sem ela o inquilino soma a própria leitura, acha menos
+do que está cobrado, e a conversa começa errada. Ele vai acentuado, ao
+contrário do resto da interface — "Agua" na tela do dono é um deslize de
+estilo, "Agua" numa mensagem cobrando alguém é desleixo.
+
+**Registrar o pagamento** vem com o valor preenchido com o total mas
+editável, porque a API aceita pagamento parcial e só marca a cobrança como
+paga quando a soma dos lançamentos cobre o total — quem decide o status é
+ela, e a folha avisa, ao digitar menos, que a cobrança vai continuar aberta
+pela diferença.
+
+Cobrança já paga abre só para compartilhar: a rota de pagamento devolve 409
+nesse caso, e um botão que só serve para dar erro é pior que nenhum.
 
 O **cadastro** são duas telas, e separadas de propósito: a unidade nasce
 vaga, pelo botão do painel, e o contrato entra depois, pelo card dela. É o
@@ -120,6 +134,53 @@ que permite cadastrar a kitnet enquanto ela está sendo construída, antes de
 haver inquilino. No contrato, a pessoa pode ser alguém já cadastrado ou um
 nome novo — nesse caso são duas chamadas, a pessoa primeiro, porque o
 contrato precisa do id dela.
+
+## As leituras funcionam sem sinal
+
+Ler submedidor é descer na garagem, no corredor dos fundos, no quadro de
+luz. Se a tela morrer sem rede, o dono anota no papel e digita em casa — e
+o app vira uma planilha mais bonita.
+
+O `LeiturasLocais`, em `data/datasources/`, guarda duas coisas por ponto e
+competência, em `SharedPreferences`:
+
+| O quê | Para quê |
+| --- | --- |
+| o **espelho** da última resposta da API | abrir offline com as unidades, as leituras anteriores e as médias |
+| as **pendências** | valores digitados que a API ainda não aceitou |
+
+Quem escolhe entre API e cache é o **repository**, não a ViewModel: do
+mesmo jeito que ela não sabe que existe HTTP, segue sem saber que existe
+cache. Ela recebe um `LeiturasDoMes`, que diz o que veio e de onde.
+
+A distinção que sustenta tudo é `ApiException.semRede` — status nulo quer
+dizer que a requisição nem chegou a ter resposta:
+
+| Situação | O que acontece |
+| --- | --- |
+| rede falhou | vira fila no aparelho; repetir pode dar certo |
+| 422, 409, 401 | erro na tela; repetir daria o mesmo, e a fila só adiaria |
+
+Salvar sem sinal devolve **sucesso**, não erro: o valor está a salvo, só
+não chegou. Sair da tela ali não perde nada, e é isso que precisa ficar
+claro para quem está na garagem.
+
+## O consumo fora do padrão
+
+A regra que já existia — a leitura não pode ser menor que a anterior — não
+pega o erro mais comum, que é a tecla a mais. 365 e 3650 são os dois
+maiores que a anterior, e só o histórico distingue os dois.
+
+A API manda `media_consumo` e `meses_historico` em cada linha de
+`/leituras`; o ViewModel compara e avisa acima de **3× a média** ou abaixo
+de **um terço** dela. O limite é folgado de propósito: variação de 50% é
+rotina num aluguel, e falso alarme toda vez ensina quem usa a ignorar o
+aviso. Com menos de dois meses de histórico não avisa nada — um mês só não
+é média.
+
+É **aviso, não erro**: âmbar em vez de vermelho, não trava o botão, e o
+rodapé diz "dá para salvar assim mesmo". Um mês de consumo alto acontece, e
+o app não tem como saber qual é qual.
 
 ## Design system
 
@@ -182,24 +243,32 @@ ponto do padrão.
 flutter test
 ```
 
-52 testes, e nenhum deles precisa da API no ar. O dublê não é o
+78 testes, e nenhum deles precisa da API no ar. O dublê não é o
 repository: é o `http.Client` de dentro do `ApiClient`, trocado por um
 `MockClient` em `test/support/api_falsa.dart`. Assim o teste passa pela
 conversão de JSON, pela query string e pelo tratamento de erro de verdade,
 que é onde moram os enganos — trocar o repository por um falso testaria o
 ViewModel contra uma camada que não existe em produção.
 
+Esse mesmo dublê sabe ficar **sem rede**: a rota com valor `SemRede()`
+lança em vez de responder, que é como o celular sem sinal chega no
+`ApiClient`. É o que permite testar a fila offline inteira sem tocar na
+rede de verdade.
+
 | Arquivo | O que cobre |
 | --- | --- |
 | `competencia_store_test.dart` | a escolha do mês, os rótulos do seletor |
 | `painel_viewmodel_test.dart` | agrupamento, totais, o mês indo na query |
-| `pagamento_viewmodel_test.dart` | parcial, quitação, 409 |
+| `cobranca_viewmodel_test.dart` | parcial, quitação, 409, o texto compartilhado |
+| `leituras_viewmodel_test.dart` | o aviso de consumo, a fila offline |
 | `cadastro_viewmodel_test.dart` | nome repetido, as duas chamadas do contrato |
 | `painel_page_test.dart` | a tela: seletor abre, card leva à ação certa |
 
 O `painel_page_test.dart` é o que cobre a fiação que o teste de ViewModel
 não alcança — que tocar no card vago abre o contrato e no card com cobrança
-abre o pagamento, e que o painel recarrega depois.
+abre a folha dela, e que o painel recarrega depois.
+
+A API tem os seus, à parte: `cd ../api_mock && python -m pytest -q`.
 
 ## O que falta
 
@@ -208,3 +277,10 @@ ponto que já existe, e a API também não tem `POST /imoveis`. Encerramento
 de contrato, que a API representa com `data_fim` e `ativo` mas não expõe em
 rota nenhuma. Histórico de pagamentos de uma cobrança: a API guarda cada
 lançamento, e o app só mostra o status que sai deles.
+
+O **lado do inquilino** é a metade fraca: duas telas somente leitura. Ele
+não tem como avisar que pagou, nem recebe nada quando a cobrança é gerada.
+
+A fila offline cobre só as **leituras**, que é onde o problema existe de
+verdade. Fatura e fechamento continuam exigindo rede — e tudo bem: os dois
+se fazem sentado, com a conta da concessionária na mão.
