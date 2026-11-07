@@ -1,0 +1,216 @@
+"""Schemas de entrada e saida da API.
+
+Todo valor monetario trafega em centavos, como inteiro. Consumo e float:
+m3 de agua costuma ter uma casa decimal, kWh e inteiro na pratica.
+"""
+
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field
+
+TipoMedidor = Literal["agua", "energia"]
+StatusCobranca = Literal["aberta", "paga", "atrasada"]
+
+
+# --- autenticacao ---------------------------------------------------------
+
+class LoginIn(BaseModel):
+    email: str
+    senha: str
+
+
+class UsuarioOut(BaseModel):
+    id: int
+    nome: str
+    perfil: Literal["proprietario", "inquilino"]
+
+
+class LoginOut(BaseModel):
+    token: str
+    usuario: UsuarioOut
+
+
+# --- cadastro -------------------------------------------------------------
+
+class ImovelOut(BaseModel):
+    id: int
+    nome: str
+    endereco: str
+    unidades: int
+    unidades_ocupadas: int
+
+
+class UnidadeIn(BaseModel):
+    imovel_id: int
+    identificacao: str
+
+
+class UnidadeOut(BaseModel):
+    id: int
+    imovel_id: int
+    identificacao: str
+    status: Literal["ocupada", "vaga"]
+    inquilino: Optional[str] = None
+    valor_aluguel: Optional[int] = None
+    cobranca_status: Optional[StatusCobranca] = None
+    cobranca_total: Optional[int] = None
+
+
+class ContratoIn(BaseModel):
+    unidade_id: int
+    inquilino_id: int
+    valor_aluguel: int = Field(gt=0, description="em centavos")
+    dia_vencimento: int = Field(ge=1, le=28)
+    data_inicio: str
+
+
+class ContratoOut(BaseModel):
+    id: int
+    unidade_id: int
+    inquilino_id: int
+    inquilino: str
+    valor_aluguel: int
+    dia_vencimento: int
+    data_inicio: str
+    ativo: bool
+
+
+# --- leituras e faturas ---------------------------------------------------
+
+class LeituraIn(BaseModel):
+    unidade_id: int
+    tipo: TipoMedidor
+    valor_atual: float
+
+
+class LeiturasLoteIn(BaseModel):
+    competencia: str = Field(pattern=r"^\d{4}-\d{2}$")
+    leituras: list[LeituraIn]
+
+
+class LeituraOut(BaseModel):
+    unidade_id: int
+    identificacao: str
+    tipo: TipoMedidor
+    competencia: str
+    valor_anterior: float
+    valor_atual: Optional[float] = None
+    consumo: Optional[float] = None
+
+
+class FaturaIn(BaseModel):
+    tipo: TipoMedidor
+    valor_total: int = Field(gt=0, description="em centavos")
+    consumo_total: float = Field(gt=0)
+
+
+class FaturasLoteIn(BaseModel):
+    competencia: str = Field(pattern=r"^\d{4}-\d{2}$")
+    faturas: list[FaturaIn]
+
+
+class FaturaOut(BaseModel):
+    """Fatura da concessionaria, lancada ou ainda em branco.
+
+    Vem sempre com os dois tipos: a tela de lancamento precisa saber o que
+    falta, nao so o que ja existe. `valor_total` nulo significa nao lancada.
+
+    `consumo_medido` e a soma dos submedidores ja lidos na competencia, e
+    serve de piso na tela: o consumo da fatura nao pode ser menor que ele,
+    senao a area comum fica negativa.
+    """
+
+    imovel_id: int
+    competencia: str
+    tipo: TipoMedidor
+    valor_total: Optional[int] = None
+    consumo_total: Optional[float] = None
+    consumo_medido: float
+
+
+# --- previa e fechamento --------------------------------------------------
+
+class ResumoTipo(BaseModel):
+    valor_total_fatura: int
+    valor_unitario: float = Field(description="centavos por m3 ou por kWh")
+    consumo_total: float
+    consumo_medido: float
+    consumo_comum: float
+    rateio_comum_por_unidade: float
+
+
+class ParcelaConsumo(BaseModel):
+    consumo: float
+    rateio_comum: float
+    valor: int
+
+
+class LinhaPrevia(BaseModel):
+    unidade_id: int
+    identificacao: str
+    inquilino: str
+    valor_aluguel: int
+    agua: ParcelaConsumo
+    energia: ParcelaConsumo
+    valor_total: int
+
+
+class Alerta(BaseModel):
+    codigo: str
+    unidade_id: Optional[int] = None
+    mensagem: str
+
+
+class PreviaOut(BaseModel):
+    imovel_id: int
+    competencia: str
+    agua: Optional[ResumoTipo] = None
+    energia: Optional[ResumoTipo] = None
+    unidades: list[LinhaPrevia]
+    total_geral: int
+    alertas: list[Alerta]
+    pode_fechar: bool
+
+
+# --- cobrancas ------------------------------------------------------------
+
+class CobrancaOut(BaseModel):
+    id: int
+    contrato_id: int
+    unidade_id: int
+    identificacao: str
+    inquilino: str
+    competencia: str
+    valor_aluguel: int
+    valor_agua: int
+    valor_energia: int
+    valor_total: int
+    status: StatusCobranca
+    vencimento: str
+
+
+class PagamentoIn(BaseModel):
+    valor: int = Field(gt=0)
+    data_pagamento: str
+    forma: Literal["pix", "dinheiro", "transferencia", "outro"] = "pix"
+
+
+class PagamentoOut(BaseModel):
+    id: int
+    cobranca_id: int
+    valor: int
+    data_pagamento: str
+    forma: str
+    cobranca_status: StatusCobranca
+
+
+class PontoConsumo(BaseModel):
+    competencia: str
+    agua: Optional[float] = None
+    energia: Optional[float] = None
+
+
+class ConsumoOut(BaseModel):
+    unidade_id: int
+    identificacao: str
+    historico: list[PontoConsumo]

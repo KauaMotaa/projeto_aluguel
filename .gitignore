@@ -1,0 +1,19 @@
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Flutter / Dart
+.dart_tool/
+build/
+
+# sistema
+Thumbs.db
+desktop.ini
+.DS_Store
