@@ -118,6 +118,28 @@ Map<String, Object?> unidadeJson(
       'cobranca_total': cobrancaTotal,
     };
 
+Map<String, Object?> leituraJson(
+  int unidadeId, {
+  String identificacao = 'Kitnet 01',
+  String tipo = 'energia',
+  String competencia = '2026-11',
+  double valorAnterior = 3180,
+  double? valorAtual,
+  double? mediaConsumo,
+  int mesesHistorico = 0,
+}) =>
+    {
+      'unidade_id': unidadeId,
+      'identificacao': identificacao,
+      'tipo': tipo,
+      'competencia': competencia,
+      'valor_anterior': valorAnterior,
+      'valor_atual': valorAtual,
+      'consumo': valorAtual == null ? null : valorAtual - valorAnterior,
+      'media_consumo': mediaConsumo,
+      'meses_historico': mesesHistorico,
+    };
+
 Map<String, Object?> cobrancaJson(
   int id, {
   int unidadeId = 1,

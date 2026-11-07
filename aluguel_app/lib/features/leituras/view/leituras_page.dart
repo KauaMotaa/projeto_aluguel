@@ -92,6 +92,7 @@ class _LeiturasView extends StatelessWidget {
                                     valorAnterior: linha.agua.valorAnterior,
                                     controller: linha.controllerAgua,
                                     erro: linha.erroAgua,
+                                    aviso: linha.avisoAgua,
                                     onChanged: (v) =>
                                         vm.validar(linha, 'agua', v),
                                   ),
@@ -104,6 +105,7 @@ class _LeiturasView extends StatelessWidget {
                                     valorAnterior: linha.energia.valorAnterior,
                                     controller: linha.controllerEnergia,
                                     erro: linha.erroEnergia,
+                                    aviso: linha.avisoEnergia,
                                     onChanged: (v) =>
                                         vm.validar(linha, 'energia', v),
                                   ),
@@ -132,15 +134,28 @@ class _LeiturasView extends StatelessWidget {
                   children: [
                     if (vm.avisoRodape != null) ...[
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.error_outline,
-                              size: 15, color: AppColors.danger),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 1),
+                            child: Icon(
+                              Icons.error_outline,
+                              size: 15,
+                              // Vermelho trava, ambar so chama atencao.
+                              color: vm.rodapeEhErro
+                                  ? AppColors.danger
+                                  : AppColors.warning,
+                            ),
+                          ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               vm.avisoRodape!,
-                              style: AppTypography.caption
-                                  .copyWith(color: AppColors.danger),
+                              style: AppTypography.caption.copyWith(
+                                color: vm.rodapeEhErro
+                                    ? AppColors.danger
+                                    : AppColors.warning,
+                              ),
                             ),
                           ),
                         ],

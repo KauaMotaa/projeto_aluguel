@@ -195,6 +195,7 @@ def listar_leituras(
             anterior = registro["valor_anterior"] if registro else _valor_anterior(
                 unidade["id"], tipo, competencia)
             atual = registro["valor_atual"] if registro else None
+            historico = _historico_consumo(unidade["id"], tipo, competencia)
             saida.append({
                 "unidade_id": unidade["id"],
                 "identificacao": unidade["identificacao"],
@@ -203,8 +204,27 @@ def listar_leituras(
                 "valor_anterior": anterior,
                 "valor_atual": atual,
                 "consumo": round(atual - anterior, 3) if atual is not None else None,
+                "media_consumo": (round(sum(historico) / len(historico), 3)
+                                  if historico else None),
+                "meses_historico": len(historico),
             })
     return saida
+
+
+def _historico_consumo(unidade_id: int, tipo: str,
+                       competencia: str) -> list[float]:
+    """Consumos deste medidor nas competencias ja fechadas.
+
+    Alimenta a media que o app usa para avisar sobre leitura fora do
+    padrao. Nao entra a competencia aberta: ela e justamente o valor que
+    esta sendo conferido.
+    """
+    return [registro["valor_atual"] - registro["valor_anterior"]
+            for registro in db.LEITURAS
+            if registro["unidade_id"] == unidade_id
+            and registro["tipo"] == tipo
+            and registro["competencia"] < competencia
+            and registro["valor_atual"] is not None]
 
 
 def _valor_anterior(unidade_id: int, tipo: str, competencia: str) -> float:

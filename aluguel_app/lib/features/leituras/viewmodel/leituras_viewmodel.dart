@@ -25,6 +25,14 @@ class LinhaLeitura {
   String? erroAgua;
   String? erroEnergia;
 
+  /// Aviso de consumo fora do padrao. Fica separado do erro de proposito:
+  /// erro trava o salvamento, aviso nao. Um mes de consumo alto acontece —
+  /// visita, mudanca, chuveiro novo — e o app nao tem como saber.
+  String? avisoAgua;
+  String? avisoEnergia;
+
+  bool get temAviso => avisoAgua != null || avisoEnergia != null;
+
   void dispose() {
     controllerAgua.dispose();
     controllerEnergia.dispose();
@@ -65,14 +73,29 @@ class LeiturasViewModel extends ChangeNotifier {
 
   bool get podeSalvar => !temErro && _linhas.isNotEmpty && !_salvando;
 
+  /// Rodape da tela. Erro vem antes de aviso: um trava o botao e o outro
+  /// nao, e mostrar os dois juntos deixaria duvida sobre qual e qual.
   String? get avisoRodape {
     final comErro = _linhas
         .where((l) => l.erroAgua != null || l.erroEnergia != null)
         .map((l) => l.identificacao)
         .toList();
-    if (comErro.isEmpty) return null;
-    return 'Corrija a leitura de ${comErro.join(', ')} para continuar';
+    if (comErro.isNotEmpty) {
+      return 'Corrija a leitura de ${comErro.join(', ')} para continuar';
+    }
+
+    final foraDoPadrao =
+        _linhas.where((l) => l.temAviso).map((l) => l.identificacao).toList();
+    if (foraDoPadrao.isEmpty) return null;
+
+    final quantas = foraDoPadrao.length;
+    return '${foraDoPadrao.join(', ')}: consumo fora do padrao. '
+        'Da para salvar assim mesmo se ${quantas == 1 ? 'estiver' : 'estiverem'} certo.';
   }
+
+  /// Diferencia os dois no rodape: erro pinta de vermelho e trava, aviso
+  /// pinta de ambar e deixa passar.
+  bool get rodapeEhErro => temErro;
 
   Future<void> carregar() async {
     _carregando = true;
@@ -110,6 +133,14 @@ class LeiturasViewModel extends ChangeNotifier {
         }
         return linha;
       }).toList();
+
+      // O que ja estava lancado tambem passa pela conferencia: o mes pode
+      // ter sido digitado errado antes, e so agora ha historico para ver.
+      for (final linha in _linhas) {
+        linha.avisoAgua = _foraDoPadrao(linha.agua, linha.agua.valorAtual);
+        linha.avisoEnergia =
+            _foraDoPadrao(linha.energia, linha.energia.valorAtual);
+      }
     } on ApiException catch (e) {
       _erro = e.mensagem;
       _linhas = [];
@@ -119,12 +150,21 @@ class LeiturasViewModel extends ChangeNotifier {
     }
   }
 
+  /// A partir de quantas vezes a media o consumo vira suspeito.
+  ///
+  /// Tres e folgado de proposito: variacao de 50% para mais ou para menos
+  /// e rotina num aluguel. O que se quer pegar e o dedo gordo — digitar
+  /// 3650 no lugar de 365 da dez vezes a media, nao uma e meia. Falso
+  /// alarme toda vez ensina quem usa a ignorar o aviso.
+  static const double limiteAlto = 3.0;
+  static const double limiteBaixo = 1 / 3;
+
   /// Validacao local: o medidor nao anda para tras. Pegar isso aqui evita
   /// uma ida ate a API so para receber 422.
   void validar(LinhaLeitura linha, String tipo, String texto) {
     final valor = double.tryParse(texto.replaceAll(',', '.'));
-    final anterior =
-        tipo == 'agua' ? linha.agua.valorAnterior : linha.energia.valorAnterior;
+    final medidor = tipo == 'agua' ? linha.agua : linha.energia;
+    final anterior = medidor.valorAnterior;
 
     String? erro;
     if (texto.trim().isEmpty) {
@@ -136,12 +176,42 @@ class LeiturasViewModel extends ChangeNotifier {
       erro = 'Menor que a anterior ($formatado)';
     }
 
+    final aviso = erro == null ? _foraDoPadrao(medidor, valor) : null;
+
     if (tipo == 'agua') {
       linha.erroAgua = erro;
+      linha.avisoAgua = aviso;
     } else {
       linha.erroEnergia = erro;
+      linha.avisoEnergia = aviso;
     }
     notifyListeners();
+  }
+
+  /// Compara o consumo digitado com o que aquele medidor costuma marcar.
+  ///
+  /// A regra que ja existia — nao pode ser menor que a anterior — nao pega
+  /// o erro mais comum, que e a tecla a mais. 365 e 3650 sao os dois
+  /// maiores que o anterior, e so o historico distingue os dois.
+  String? _foraDoPadrao(Leitura medidor, double? valor) {
+    if (valor == null || !medidor.temPadrao) return null;
+
+    final consumo = valor - medidor.valorAnterior;
+    if (consumo < 0) return null;
+
+    final media = medidor.mediaConsumo!;
+    final habitual = Formatters.consumo(media, medidor.tipo);
+    final vezes = consumo / media;
+
+    if (vezes >= limiteAlto) {
+      return '${Formatters.numero(vezes)}x o normal desta unidade '
+          '($habitual por mes). Confere?';
+    }
+    if (vezes <= limiteBaixo) {
+      return 'Bem abaixo do normal desta unidade '
+          '($habitual por mes). Confere?';
+    }
+    return null;
   }
 
   Future<bool> salvar() async {

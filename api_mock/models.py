@@ -108,6 +108,17 @@ class LeiturasLoteIn(BaseModel):
 
 
 class LeituraOut(BaseModel):
+    """Uma linha da tela de leituras.
+
+    `media_consumo` e a media do que este medidor consumiu nas
+    competencias anteriores, e existe para o app poder avisar quando o
+    valor digitado destoa. Vem da API porque e ela que tem o historico; o
+    app so conhece o mes aberto.
+
+    `meses_historico` diz de quantos meses essa media saiu: com um mes so
+    ela nao e media de nada, e avisar seria falso alarme.
+    """
+
     unidade_id: int
     identificacao: str
     tipo: TipoMedidor
@@ -115,6 +126,8 @@ class LeituraOut(BaseModel):
     valor_anterior: float
     valor_atual: Optional[float] = None
     consumo: Optional[float] = None
+    media_consumo: Optional[float] = None
+    meses_historico: int = 0
 
 
 class FaturaIn(BaseModel):
