@@ -176,6 +176,31 @@ ponto do padrão.
   (os de tela ficam num `ChangeNotifierProvider` local, como em
   `LeiturasPage`)
 
+## Testes
+
+```bash
+flutter test
+```
+
+52 testes, e nenhum deles precisa da API no ar. O dublê não é o
+repository: é o `http.Client` de dentro do `ApiClient`, trocado por um
+`MockClient` em `test/support/api_falsa.dart`. Assim o teste passa pela
+conversão de JSON, pela query string e pelo tratamento de erro de verdade,
+que é onde moram os enganos — trocar o repository por um falso testaria o
+ViewModel contra uma camada que não existe em produção.
+
+| Arquivo | O que cobre |
+| --- | --- |
+| `competencia_store_test.dart` | a escolha do mês, os rótulos do seletor |
+| `painel_viewmodel_test.dart` | agrupamento, totais, o mês indo na query |
+| `pagamento_viewmodel_test.dart` | parcial, quitação, 409 |
+| `cadastro_viewmodel_test.dart` | nome repetido, as duas chamadas do contrato |
+| `painel_page_test.dart` | a tela: seletor abre, card leva à ação certa |
+
+O `painel_page_test.dart` é o que cobre a fiação que o teste de ViewModel
+não alcança — que tocar no card vago abre o contrato e no card com cobrança
+abre o pagamento, e que o painel recarrega depois.
+
 ## O que falta
 
 Cadastro de **ponto** (imóvel) — hoje só dá para adicionar unidade a um
@@ -183,7 +208,3 @@ ponto que já existe, e a API também não tem `POST /imoveis`. Encerramento
 de contrato, que a API representa com `data_fim` e `ativo` mas não expõe em
 rota nenhuma. Histórico de pagamentos de uma cobrança: a API guarda cada
 lançamento, e o app só mostra o status que sai deles.
-
-E nenhum teste automatizado. Os ViewModels são a parte que mais pediria:
-recebem repository e competência por construtor justamente para poderem ser
-testados sem tela nem HTTP.

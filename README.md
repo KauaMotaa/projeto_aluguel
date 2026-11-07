@@ -66,5 +66,15 @@ o cadastro de unidade nova e do contrato que a aluga.
 Como **inquilino**: as cobranças dele, com a quebra entre aluguel, água e
 energia, e o histórico de consumo mês a mês.
 
+## Testes
+
+```bash
+cd aluguel_app && flutter test
+```
+
+52 testes, nenhum deles precisa da API no ar: o dublê é o cliente HTTP de
+dentro do `ApiClient`, então o teste ainda passa pela conversão de JSON e
+pelo tratamento de erro de verdade.
+
 Detalhes de arquitetura em [`aluguel_app/README.md`](aluguel_app/README.md)
 e das rotas em [`api_mock/README.md`](api_mock/README.md).

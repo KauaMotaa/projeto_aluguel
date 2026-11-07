@@ -132,7 +132,21 @@ prévia dele para ver os dois alertas e o botão desabilitado — e, se quiser,
 leve ele até o fim sem sair do app: lance as leituras das duas casas, lance
 as duas faturas pelo atalho do alerta e feche o mês.
 
-## Testes que valem fazer
+## Testes automatizados
+
+Antes de abrir o app, dá para conferir que a lógica está de pé sem subir
+nada — nem o mock, nem emulador:
+
+```bash
+cd aluguel_app
+flutter test
+```
+
+São 52 testes. Eles trocam o cliente HTTP por um de mentira, então passam
+pela conversão de JSON e pelo tratamento de erro de verdade. Detalhe do
+que cobrem em [`aluguel_app/README.md`](aluguel_app/README.md).
+
+## Testes que valem fazer na mão
 
 Na tela de leituras, digite um valor **menor** que a leitura anterior. O
 campo fica vermelho, a legenda explica, e o botão de salvar desabilita. Essa
