@@ -179,11 +179,14 @@ class _PainelPageState extends State<PainelPage> {
     }
 
     return ListView(
+      // O rodape folgado e por causa do botao flutuante: com o espaco
+      // normal ele fica em cima do ultimo card, e o do ultimo ponto e
+      // justamente o que tem os botoes de leitura e fechamento.
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
         AppSpacing.md,
         AppSpacing.md,
-        AppSpacing.xl,
+        AppSpacing.xl * 3,
       ),
       children: [
         for (final grupo in vm.grupos) ...[
