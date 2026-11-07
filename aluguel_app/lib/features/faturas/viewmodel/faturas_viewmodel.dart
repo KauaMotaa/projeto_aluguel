@@ -41,12 +41,18 @@ class LinhaFatura {
 }
 
 class FaturasViewModel extends ChangeNotifier {
-  FaturasViewModel(this._repo, {required this.imovelId});
+  FaturasViewModel(
+    this._repo, {
+    required this.imovelId,
+    required this.competencia,
+  });
 
   final FaturaRepository _repo;
   final int imovelId;
 
-  static const String competencia = '2026-11';
+  /// Vem do seletor do painel, pelo CompetenciaStore. E a fatura daquele
+  /// mes: trocar de mes aqui seria trocar de fatura no meio da digitacao.
+  final String competencia;
 
   bool _carregando = false;
   bool _salvando = false;

@@ -38,10 +38,13 @@ e serve para ver os alertas da prévia funcionando.
 | Método | Rota | Perfil |
 | --- | --- | --- |
 | POST | `/api/v1/auth/login` | — |
+| GET | `/api/v1/competencias` | proprietário |
 | GET | `/api/v1/imoveis` | proprietário |
 | GET | `/api/v1/unidades?competencia=&imovel_id=` | proprietário |
 | GET | `/api/v1/unidades/{id}` | proprietário |
 | POST | `/api/v1/unidades` | proprietário |
+| GET | `/api/v1/inquilinos` | proprietário |
+| POST | `/api/v1/inquilinos` | proprietário |
 | POST | `/api/v1/contratos` | proprietário |
 | GET | `/api/v1/leituras?competencia=&imovel_id=` | proprietário |
 | POST | `/api/v1/leituras` | proprietário |
@@ -56,6 +59,17 @@ e serve para ver os alertas da prévia funcionando.
 
 Fatura, prévia e fechamento penduram no imóvel porque cada ponto tem a
 própria fatura de concessionária e o próprio consumo comum.
+
+`/competencias` existe para o app não ter o mês escrito no código. Devolve
+os meses que já têm algum lançamento, mais o mês do calendário, do mais
+recente para o mais antigo, e em cada um quantos pontos já foram fechados —
+o fechamento é por ponto, então um mês pode estar fechado num imóvel e
+aberto no outro. Quem sabe onde os lançamentos começam é a API; um
+intervalo calculado no cliente ofereceria meses vazios.
+
+`/inquilinos` traz, em cada pessoa, as unidades que ela ocupa hoje. A lista
+de nomes sozinha não diz quem já está alojado, e é isso que evita escolher
+por engano alguém que já tem contrato ativo.
 
 ## Convenções
 

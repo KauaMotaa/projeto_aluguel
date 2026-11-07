@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/state/competencia_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
@@ -27,9 +28,11 @@ class PreviaPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (ctx) =>
-          PreviaViewModel(ctx.read<FechamentoRepository>(), imovelId: imovelId)
-            ..carregar(),
+      create: (ctx) => PreviaViewModel(
+        ctx.read<FechamentoRepository>(),
+        imovelId: imovelId,
+        competencia: ctx.read<CompetenciaStore>().atual,
+      )..carregar(),
       child: _PreviaView(endereco: endereco),
     );
   }

@@ -30,6 +30,10 @@ flutter pub get && flutter run
 Para entrar: `kaua@exemplo.com` (proprietário) ou `maria@exemplo.com`
 (inquilino), senha `123456` nos dois. São dados fictícios do mock.
 
+O mês não está escrito no código: o app pergunta à API quais competências
+têm lançamento e abre na mais recente. O mock carrega setembro, outubro e
+novembro de 2026, então dá para navegar entre um mês fechado e um aberto.
+
 ## O problema que ele resolve
 
 Um ponto de aluguel tem um relógio de água e um de energia na entrada, e
@@ -52,12 +56,25 @@ fecha exatamente com o valor da fatura, sem sobrar centavo.
 
 ## O que o app faz
 
-Como **proprietário**: painel das unidades agrupadas por ponto, lançamento
-das leituras dos submedidores, lançamento da fatura da concessionária,
-prévia do fechamento com os alertas que o travam, e geração das cobranças.
+Como **proprietário**: painel das unidades agrupadas por ponto, com seletor
+de mês, lançamento das leituras dos submedidores, lançamento da fatura da
+concessionária, prévia do fechamento com os alertas que o travam, e geração
+das cobranças. Depois do fechamento, o registro do pagamento de cada
+cobrança — inclusive parcial, que deixa a cobrança aberta pela diferença. E
+o cadastro de unidade nova e do contrato que a aluga.
 
 Como **inquilino**: as cobranças dele, com a quebra entre aluguel, água e
 energia, e o histórico de consumo mês a mês.
+
+## Testes
+
+```bash
+cd aluguel_app && flutter test
+```
+
+52 testes, nenhum deles precisa da API no ar: o dublê é o cliente HTTP de
+dentro do `ApiClient`, então o teste ainda passa pela conversão de JSON e
+pelo tratamento de erro de verdade.
 
 Detalhes de arquitetura em [`aluguel_app/README.md`](aluguel_app/README.md)
 e das rotas em [`api_mock/README.md`](api_mock/README.md).
