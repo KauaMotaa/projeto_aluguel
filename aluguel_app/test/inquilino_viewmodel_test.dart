@@ -180,6 +180,87 @@ void main() {
     });
   });
 
+  group('tendencia de consumo', () {
+    ApiFalsa comHistorico(List<Map<String, Object?>> historico) => ApiFalsa({
+          'GET /minhas-cobrancas': [comQuebra()],
+          'GET /meu-consumo': [
+            {
+              'unidade_id': 1,
+              'identificacao': 'Kitnet 01',
+              'historico': historico,
+            },
+          ],
+        });
+
+    test('gastou mais que no mes passado', () async {
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-10', 'agua': 7.0, 'energia': 160.0},
+        {'competencia': '2026-11', 'agua': 7.7, 'energia': 200.0},
+      ]));
+
+      expect(vm.tendenciaDe(vm.consumo.single, 'agua'),
+          '10% acima do mes anterior');
+      expect(vm.tendenciaDe(vm.consumo.single, 'energia'),
+          '25% acima do mes anterior');
+    });
+
+    test('gastou menos', () async {
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-10', 'agua': 10.0, 'energia': 160.0},
+        {'competencia': '2026-11', 'agua': 8.0, 'energia': 160.0},
+      ]));
+
+      expect(vm.tendenciaDe(vm.consumo.single, 'agua'),
+          '20% abaixo do mes anterior');
+      expect(vm.tendenciaDe(vm.consumo.single, 'energia'),
+          'Mesmo consumo de energia do mes anterior');
+    });
+
+    test('um mes so nao tem com o que comparar', () async {
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-11', 'agua': 7.5, 'energia': 160.0},
+      ]));
+
+      expect(vm.tendenciaDe(vm.consumo.single, 'agua'), isNull);
+    });
+
+    test('mes sem leitura nao entra na comparacao', () async {
+      // Novembro ainda nao teve o medidor de energia lido: a tendencia de
+      // energia compara setembro com outubro, e nao com um buraco.
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-09', 'agua': 7.0, 'energia': 100.0},
+        {'competencia': '2026-10', 'agua': 7.0, 'energia': 150.0},
+        {'competencia': '2026-11', 'agua': 7.0, 'energia': null},
+      ]));
+
+      expect(vm.tendenciaDe(vm.consumo.single, 'energia'),
+          '50% acima do mes anterior');
+    });
+
+    test('anterior zerado nao vira porcentagem', () async {
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-10', 'agua': 0.0, 'energia': 160.0},
+        {'competencia': '2026-11', 'agua': 7.5, 'energia': 160.0},
+      ]));
+
+      // Qualquer coisa dividida por zero daria um numero sem sentido na
+      // tela: "infinito% acima" nao ajuda ninguem.
+      expect(vm.tendenciaDe(vm.consumo.single, 'agua'), isNull);
+    });
+
+    test('o valor cru alimenta a altura da barra, e nulo e nulo', () async {
+      final vm = await montar(comHistorico([
+        {'competencia': '2026-11', 'agua': 7.5, 'energia': null},
+      ]));
+      final ponto = vm.consumo.single.historico.single;
+
+      expect(vm.consumoBrutoDe(ponto, 'agua'), 7.5);
+      expect(vm.consumoBrutoDe(ponto, 'energia'), isNull);
+      expect(vm.consumoDe(ponto, 'agua'), '7,5 m³');
+      expect(vm.consumoDe(ponto, 'energia'), '—');
+    });
+  });
+
   group('comprovante', () {
     test('o inquilino manda o mesmo texto que o dono manda', () async {
       final vm = await montar(cenario());

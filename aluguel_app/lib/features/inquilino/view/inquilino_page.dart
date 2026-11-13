@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/texto_cobranca.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/barras_consumo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../core/widgets/value_row.dart';
@@ -383,13 +384,6 @@ class _CardConsumo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(consumo.identificacao, style: AppTypography.subtitle),
-          const SizedBox(height: AppSpacing.sm + 2),
-          const _LinhaConsumo(
-            mes: 'MES',
-            agua: 'AGUA',
-            energia: 'ENERGIA',
-            cabecalho: true,
-          ),
           if (consumo.historico.isEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -398,67 +392,77 @@ class _CardConsumo extends StatelessWidget {
                 style: AppTypography.caption.copyWith(fontSize: 13),
               ),
             )
-          else
-            for (final ponto in consumo.historico)
-              _LinhaConsumo(
-                mes: vm.mesDe(ponto),
-                agua: vm.aguaConsumidaDe(ponto),
-                energia: vm.energiaConsumidaDe(ponto),
-              ),
+          else ...[
+            _Medidor(vm: vm, consumo: consumo, tipo: 'agua', titulo: 'Agua'),
+            const SizedBox(height: AppSpacing.md),
+            _Medidor(
+                vm: vm, consumo: consumo, tipo: 'energia', titulo: 'Energia'),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Uma linha da tabela de consumo. As duas colunas de valor tem largura
-/// fixa para os numeros ficarem alinhados entre os meses.
-class _LinhaConsumo extends StatelessWidget {
-  const _LinhaConsumo({
-    required this.mes,
-    required this.agua,
-    required this.energia,
-    this.cabecalho = false,
+/// Um medidor dentro do card de consumo: o titulo, a tendencia e as
+/// barras mes a mes.
+class _Medidor extends StatelessWidget {
+  const _Medidor({
+    required this.vm,
+    required this.consumo,
+    required this.tipo,
+    required this.titulo,
   });
 
-  final String mes;
-  final String agua;
-  final String energia;
-  final bool cabecalho;
+  final InquilinoViewModel vm;
+  final Consumo consumo;
+  final String tipo;
+  final String titulo;
 
   @override
   Widget build(BuildContext context) {
-    final estilo = cabecalho
-        ? AppTypography.caption.copyWith(fontSize: 10, letterSpacing: 0.5)
-        : AppTypography.body.copyWith(fontSize: 13);
+    final tendencia = vm.tendenciaDe(consumo, tipo);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      decoration: cabecalho
-          ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            )
-          : null,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              mes,
-              style: cabecalho
-                  ? estilo
-                  : estilo.copyWith(color: AppColors.textSecondary),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.sm + 2),
+        Row(
+          children: [
+            Text(
+              titulo,
+              style: AppTypography.caption.copyWith(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.4,
+              ),
             ),
-          ),
-          SizedBox(
-            width: 78,
-            child: Text(agua, textAlign: TextAlign.right, style: estilo),
-          ),
-          SizedBox(
-            width: 78,
-            child: Text(energia, textAlign: TextAlign.right, style: estilo),
-          ),
-        ],
-      ),
+            if (tendencia != null) ...[
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '·  $tendencia',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(fontSize: 11),
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        BarrasConsumo(
+          cor: tipo == 'agua' ? AppColors.primaryMuted : AppColors.primary,
+          barras: [
+            for (final ponto in consumo.historico)
+              BarraConsumo(
+                rotulo: vm.mesDe(ponto),
+                valor: vm.consumoBrutoDe(ponto, tipo),
+                texto: vm.consumoDe(ponto, tipo),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -149,6 +149,39 @@ class InquilinoViewModel extends ChangeNotifier {
   String mesDe(PontoConsumo ponto) =>
       Formatters.competenciaCurta(ponto.competencia);
 
+  /// O consumo cru daquele medidor, que define a altura da barra. Nulo
+  /// quando o mes nao foi lancado.
+  double? consumoBrutoDe(PontoConsumo ponto, String tipo) =>
+      tipo == 'agua' ? ponto.agua : ponto.energia;
+
+  String consumoDe(PontoConsumo ponto, String tipo) =>
+      tipo == 'agua' ? aguaConsumidaDe(ponto) : energiaConsumidaDe(ponto);
+
+  /// Comparacao com o mes anterior.
+  ///
+  /// E o que o grafico mostra e o numero nao diz: a pessoa olhando a
+  /// conta quer saber se esta gastando mais, nao quanto gastou. Nula
+  /// quando faltam os dois meses para comparar, ou quando o anterior foi
+  /// zero — ai nao ha porcentagem que signifique alguma coisa.
+  String? tendenciaDe(Consumo unidade, String tipo) {
+    final lancados = [
+      for (final ponto in unidade.historico)
+        if (consumoBrutoDe(ponto, tipo) != null) consumoBrutoDe(ponto, tipo)!
+    ];
+    if (lancados.length < 2) return null;
+
+    final anterior = lancados[lancados.length - 2];
+    final atual = lancados.last;
+    if (anterior <= 0) return null;
+
+    final variacao = ((atual - anterior) / anterior * 100).round();
+    final rotulo = tipo == 'agua' ? 'agua' : 'energia';
+
+    if (variacao == 0) return 'Mesmo consumo de $rotulo do mes anterior';
+    final direcao = variacao > 0 ? 'acima' : 'abaixo';
+    return '${variacao.abs()}% $direcao do mes anterior';
+  }
+
   /// Guiao do travessao: consumo nao lancado e diferente de consumo zero,
   /// e o mes em andamento costuma ter so um dos medidores lido.
   String aguaConsumidaDe(PontoConsumo ponto) => ponto.agua == null
