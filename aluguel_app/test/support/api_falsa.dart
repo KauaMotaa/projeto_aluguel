@@ -167,6 +167,7 @@ Map<String, Object?> cobrancaJson(
   String vencimento = '2026-11-10',
   Map<String, Object?>? detalheAgua,
   Map<String, Object?>? detalheEnergia,
+  Map<String, Object?>? pagamentoInformado,
 }) =>
     {
       'id': id,
@@ -183,6 +184,21 @@ Map<String, Object?> cobrancaJson(
       'vencimento': vencimento,
       'detalhe_agua': detalheAgua,
       'detalhe_energia': detalheEnergia,
+      'pagamento_informado': pagamentoInformado,
+    };
+
+/// O recado do inquilino dizendo que pagou. Nao e pagamento.
+Map<String, Object?> avisoJson({
+  required int valor,
+  String dataPagamento = '2026-11-12',
+  String forma = 'pix',
+  String informadoEm = '2026-11-13',
+}) =>
+    {
+      'valor': valor,
+      'data_pagamento': dataPagamento,
+      'forma': forma,
+      'informado_em': informadoEm,
     };
 
 /// A quebra de uma parcela: o que o submedidor marcou, a parte da area

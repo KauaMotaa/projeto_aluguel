@@ -142,6 +142,44 @@ void main() {
     });
   });
 
+  group('avisar que pagou', () {
+    test('da para avisar enquanto nao esta paga', () async {
+      final vm = await montar(cenario(cobrancas: [
+        comQuebra(),
+        comQuebra(competencia: '2026-10', status: 'paga'),
+      ]));
+
+      expect(vm.podeAvisar(vm.cobrancas.first), isTrue);
+      expect(vm.rotuloDoAviso(vm.cobrancas.first), 'Avisar que paguei');
+      expect(vm.podeAvisar(vm.cobrancas.last), isFalse,
+          reason: 'paga nao tem o que avisar');
+    });
+
+    test('avisada, o botao vira correcao e o card diz o que foi informado',
+        () async {
+      final avisada = {
+        ...comQuebra(),
+        'pagamento_informado':
+            avisoJson(valor: 100000, dataPagamento: '2026-11-12'),
+      };
+      final vm = await montar(cenario(cobrancas: [avisada]));
+      final cobranca = vm.cobrancas.single;
+
+      expect(cobranca.foiAvisada, isTrue);
+      expect(cobranca.paga, isFalse, reason: 'o aviso nao quita nada');
+      expect(vm.rotuloDoAviso(cobranca), 'Corrigir o aviso');
+      expect(vm.avisoEnviadoDe(cobranca),
+          r'Voce informou R$ 1.000,00 em 12/11/2026. '
+          'Aguardando a confirmacao do proprietario.');
+    });
+
+    test('sem aviso, o card nao mostra linha de espera', () async {
+      final vm = await montar(cenario());
+
+      expect(vm.avisoEnviadoDe(vm.cobrancas.single), isNull);
+    });
+  });
+
   group('comprovante', () {
     test('o inquilino manda o mesmo texto que o dono manda', () async {
       final vm = await montar(cenario());

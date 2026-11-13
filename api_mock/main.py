@@ -567,6 +567,11 @@ def registrar_pagamento(cobranca_id: int, dados: m.PagamentoIn,
                  **dados.model_dump()}
     db.PAGAMENTOS.append(pagamento)
 
+    # O aviso do inquilino cumpriu o papel dele: o proprietario viu e
+    # lancou. Mante-lo ali so faria a etiqueta de "confira isto" ficar
+    # acesa para sempre.
+    cobranca.pop("pagamento_informado", None)
+
     pago = sum(p["valor"] for p in db.PAGAMENTOS if p["cobranca_id"] == cobranca_id)
     if pago >= cobranca["valor_total"]:
         cobranca["status"] = "paga"
@@ -588,6 +593,38 @@ def minhas_cobrancas(usuario: dict = Depends(usuario_logado)):
 
     ids = {c["id"] for c in _contratos_do_inquilino(usuario)}
     return [c for c in db.COBRANCAS if c["contrato_id"] in ids]
+
+
+@app.post(f"{V1}/minhas-cobrancas/{{cobranca_id}}/aviso-pagamento",
+          response_model=m.CobrancaOut, status_code=201, tags=["inquilino"])
+def avisar_pagamento(cobranca_id: int, dados: m.AvisoPagamentoIn,
+                     usuario: dict = Depends(usuario_logado)):
+    """O inquilino avisa que pagou.
+
+    Nao muda o status da cobranca, de proposito. Quem sabe se o dinheiro
+    entrou e o proprietario, e e ele quem confirma, pela rota de
+    pagamento que ja existia. Isto aqui substitui o "ja te mandei o pix"
+    que hoje acontece por fora do app, e poupa a digitacao do outro lado.
+
+    Avisar de novo sobrescreve o aviso anterior: corrigir o valor que se
+    informou e mais comum do que ter dois avisos para a mesma cobranca.
+    """
+    if usuario["perfil"] != "inquilino":
+        raise HTTPException(status_code=403, detail="Rota do inquilino")
+
+    cobranca = db.cobranca(cobranca_id)
+    meus = {c["id"] for c in _contratos_do_inquilino(usuario)}
+    if not cobranca or cobranca["contrato_id"] not in meus:
+        raise HTTPException(status_code=404, detail="Cobranca nao encontrada")
+    if cobranca["status"] == "paga":
+        raise HTTPException(status_code=409,
+                            detail="Esta cobranca ja consta como paga")
+
+    cobranca["pagamento_informado"] = {
+        **dados.model_dump(),
+        "informado_em": date.today().isoformat(),
+    }
+    return cobranca
 
 
 @app.get(f"{V1}/meu-consumo", response_model=list[m.ConsumoOut], tags=["inquilino"])

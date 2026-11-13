@@ -190,6 +190,46 @@ Vence em 10/11/2026
     });
   });
 
+  group('aviso do inquilino', () {
+    CobrancaViewModel comAviso(Map<String, Object?> aviso) => CobrancaViewModel(
+          CobrancaRepository(aceita().cliente),
+          cobranca: Cobranca.fromJson(cobrancaJson(
+            7,
+            aluguel: 65000,
+            agua: 12534,
+            energia: 23581,
+            pagamentoInformado: aviso,
+          )),
+          hoje: DateTime(2026, 11, 13),
+        );
+
+    test('sem aviso, nada aparece e o valor e o total', () {
+      final vm = montar(aceita());
+
+      expect(vm.avisoDoInquilino, isNull);
+      expect(vm.centavos, total);
+    });
+
+    test('o dono le o que o inquilino informou', () {
+      final vm = comAviso(avisoJson(
+          valor: 100000, dataPagamento: '2026-11-12', forma: 'transferencia'));
+
+      expect(vm.avisoDoInquilino,
+          r'Maria Souza informou R$ 1.000,00 por Transferencia em 12/11/2026.');
+    });
+
+    test('o formulario abre com o que ele disse, nao com o total', () {
+      // Conferir um numero ja preenchido e mais rapido, e menos sujeito a
+      // engano, do que digitar de novo o que o outro lado ja informou.
+      final vm = comAviso(avisoJson(valor: 100000, forma: 'dinheiro'));
+
+      expect(vm.centavos, 100000);
+      expect(vm.forma, 'dinheiro');
+      expect(vm.avisoValor, contains('Pagamento parcial'),
+          reason: 'informou menos que o total, e isso continua valendo');
+    });
+  });
+
   test('a forma comeca em pix e so muda para uma que a API aceita', () {
     final vm = montar(aceita());
 

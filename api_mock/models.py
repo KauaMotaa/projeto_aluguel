@@ -223,6 +223,27 @@ class PreviaOut(BaseModel):
 
 # --- cobrancas ------------------------------------------------------------
 
+class AvisoPagamentoIn(BaseModel):
+    valor: int = Field(gt=0)
+    data_pagamento: str
+    forma: Literal["pix", "dinheiro", "transferencia", "outro"] = "pix"
+
+
+class AvisoPagamentoOut(BaseModel):
+    """O que o inquilino diz ter pago.
+
+    Nao e um pagamento: e um recado. Nao mexe no status da cobranca nem
+    entra na soma — quem decide se o dinheiro entrou e o proprietario.
+    Serve para ele saber que tem algo a conferir, e para nao ter de
+    redigitar o que o outro lado ja informou.
+    """
+
+    valor: int
+    data_pagamento: str
+    forma: str
+    informado_em: str
+
+
 class DetalheRateio(BaseModel):
     """De onde sai a parcela de agua ou de energia de uma cobranca.
 
@@ -252,6 +273,7 @@ class CobrancaOut(BaseModel):
     vencimento: str
     detalhe_agua: Optional[DetalheRateio] = None
     detalhe_energia: Optional[DetalheRateio] = None
+    pagamento_informado: Optional[AvisoPagamentoOut] = None
 
 
 class PagamentoIn(BaseModel):

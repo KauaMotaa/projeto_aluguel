@@ -16,6 +16,7 @@ import '../../../data/repositories/auth_repository.dart';
 import '../../../data/repositories/inquilino_repository.dart';
 import '../../auth/view/login_page.dart';
 import '../viewmodel/inquilino_viewmodel.dart';
+import 'aviso_pagamento_sheet.dart';
 
 /// Painel do inquilino: o que ele deve e quanto consumiu.
 ///
@@ -39,6 +40,18 @@ class InquilinoPage extends StatelessWidget {
 class _InquilinoView extends StatelessWidget {
   const _InquilinoView();
 
+  /// Manda o aviso e recarrega: a cobranca volta com o recado anexado, e
+  /// o card passa a mostrar que ha algo aguardando conferencia.
+  Future<void> _avisar(BuildContext context, Cobranca cobranca) async {
+    final vm = context.read<InquilinoViewModel>();
+    final mensagem = await AvisoPagamentoSheet.abrir(context, cobranca: cobranca);
+    if (mensagem == null || !context.mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
+    await vm.carregar();
+  }
+
   Future<void> _sair(BuildContext context) async {
     context.read<InquilinoViewModel>().sair();
     await Navigator.of(context).pushAndRemoveUntil(
@@ -58,7 +71,7 @@ class _InquilinoView extends StatelessWidget {
           Expanded(
             child: RefreshIndicator(
               onRefresh: vm.carregar,
-              child: _corpo(vm),
+              child: _corpo(context, vm),
             ),
           ),
         ],
@@ -66,7 +79,7 @@ class _InquilinoView extends StatelessWidget {
     );
   }
 
-  Widget _corpo(InquilinoViewModel vm) {
+  Widget _corpo(BuildContext context, InquilinoViewModel vm) {
     if (vm.carregando && vm.cobrancas.isEmpty && vm.consumo.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -131,7 +144,13 @@ class _InquilinoView extends StatelessWidget {
           )
         else
           for (final cobranca in vm.cobrancas) ...[
-            _CardCobranca(vm: vm, cobranca: cobranca),
+            _CardCobranca(
+              vm: vm,
+              cobranca: cobranca,
+              onAvisar: vm.podeAvisar(cobranca)
+                  ? () => _avisar(context, cobranca)
+                  : null,
+            ),
             const SizedBox(height: 10),
           ],
         const SizedBox(height: AppSpacing.md),
@@ -246,10 +265,17 @@ class _Titulo extends StatelessWidget {
 }
 
 class _CardCobranca extends StatelessWidget {
-  const _CardCobranca({required this.vm, required this.cobranca});
+  const _CardCobranca({
+    required this.vm,
+    required this.cobranca,
+    this.onAvisar,
+  });
 
   final InquilinoViewModel vm;
   final Cobranca cobranca;
+
+  /// Nulo em cobranca ja paga: nao ha o que avisar.
+  final VoidCallback? onAvisar;
 
   /// Cobranca antiga pode nao ter a quebra guardada. Nesse caso mostra so
   /// o total, em vez de inventar de onde ele veio.
@@ -307,6 +333,37 @@ class _CardCobranca extends StatelessWidget {
           _linhaDeConsumo(
               vm, cobranca, 'energia', 'Energia', vm.energiaDe(cobranca)),
           ValueRow.total(label: 'Total', valor: vm.totalDe(cobranca)),
+          if (vm.avisoEnviadoDe(cobranca) != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.schedule_outlined,
+                    size: 14, color: AppColors.warning),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    vm.avisoEnviadoDe(cobranca)!,
+                    style: AppTypography.caption.copyWith(
+                      fontSize: 11,
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (onAvisar != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: onAvisar,
+                icon: const Icon(Icons.check_circle_outline, size: 17),
+                label: Text(vm.rotuloDoAviso(cobranca)),
+              ),
+            ),
+          ],
         ],
       ),
     );

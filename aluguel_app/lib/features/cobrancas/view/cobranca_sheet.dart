@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/forma_pagamento.dart';
 import '../../../core/widgets/value_row.dart';
 import '../../../data/models/cobranca.dart';
 import '../../../data/repositories/cobranca_repository.dart';
@@ -154,6 +155,29 @@ class _CobrancaView extends StatelessWidget {
             // Paga nao tem o que receber: a rota de pagamento devolve 409.
             if (vm.quitada) const SizedBox(height: AppSpacing.sm),
             if (!vm.quitada) ...[
+              if (vm.avisoDoInquilino != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                AppCard(
+                  destaque: true,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.mark_email_read_outlined,
+                          size: 18, color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          '${vm.avisoDoInquilino!} Confira e lance abaixo.',
+                          style: AppTypography.caption.copyWith(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               const Text('Valor recebido', style: AppTypography.caption),
             const SizedBox(height: 5),
@@ -184,32 +208,10 @@ class _CobrancaView extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             const Text('Forma', style: AppTypography.caption),
             const SizedBox(height: 6),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                for (final entrada in CobrancaViewModel.formas.entries)
-                  ChoiceChip(
-                    label: Text(entrada.value),
-                    selected: vm.forma == entrada.key,
-                    onSelected: (_) => vm.escolherForma(entrada.key),
-                    showCheckmark: false,
-                    labelStyle: AppTypography.body.copyWith(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: vm.forma == entrada.key
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                    ),
-                    backgroundColor: AppColors.surface,
-                    selectedColor: AppColors.primarySurface,
-                    side: BorderSide(
-                      color: vm.forma == entrada.key
-                          ? AppColors.primary
-                          : AppColors.border,
-                    ),
-                  ),
-              ],
+            FormaPagamento(
+              formas: CobrancaViewModel.formas,
+              selecionada: vm.forma,
+              onEscolher: vm.escolherForma,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(

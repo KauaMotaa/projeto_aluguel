@@ -28,6 +28,33 @@ class DetalheRateio {
       );
 }
 
+/// O que o inquilino diz ter pago.
+///
+/// Nao e um pagamento: e um recado. Nao mexe no status da cobranca nem
+/// entra em soma nenhuma — quem decide se o dinheiro entrou e o
+/// proprietario. Serve para ele saber que ha algo a conferir, e para nao
+/// ter de redigitar o que o outro lado ja informou.
+class AvisoPagamento {
+  const AvisoPagamento({
+    required this.valor,
+    required this.dataPagamento,
+    required this.forma,
+    required this.informadoEm,
+  });
+
+  final int valor;
+  final String dataPagamento;
+  final String forma;
+  final String informadoEm;
+
+  factory AvisoPagamento.fromJson(Map<String, dynamic> json) => AvisoPagamento(
+        valor: json['valor'] as int,
+        dataPagamento: json['data_pagamento'] as String,
+        forma: json['forma'] as String,
+        informadoEm: json['informado_em'] as String,
+      );
+}
+
 class Cobranca {
   const Cobranca({
     required this.id,
@@ -44,6 +71,7 @@ class Cobranca {
     required this.vencimento,
     this.detalheAgua,
     this.detalheEnergia,
+    this.pagamentoInformado,
   });
 
   final int id;
@@ -64,10 +92,15 @@ class Cobranca {
   final DetalheRateio? detalheAgua;
   final DetalheRateio? detalheEnergia;
 
+  /// Presente quando o inquilino avisou que pagou e o proprietario ainda
+  /// nao lancou. Some assim que ele lanca.
+  final AvisoPagamento? pagamentoInformado;
+
   bool get paga => status == 'paga';
   bool get atrasada => status == 'atrasada';
 
   bool get temDetalhe => detalheAgua != null && detalheEnergia != null;
+  bool get foiAvisada => pagamentoInformado != null;
 
   factory Cobranca.fromJson(Map<String, dynamic> json) => Cobranca(
         id: json['id'] as int,
@@ -90,5 +123,9 @@ class Cobranca {
             ? null
             : DetalheRateio.fromJson(
                 json['detalhe_energia'] as Map<String, dynamic>),
+        pagamentoInformado: json['pagamento_informado'] == null
+            ? null
+            : AvisoPagamento.fromJson(
+                json['pagamento_informado'] as Map<String, dynamic>),
       );
 }

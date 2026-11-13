@@ -119,6 +119,25 @@ class InquilinoViewModel extends ChangeNotifier {
     return '$seu seus e $comum de area comum, a $preco/$unidade';
   }
 
+  /// Da para avisar enquanto a cobranca nao esta paga — inclusive para
+  /// corrigir um aviso ja enviado, que e o caso mais comum depois do
+  /// primeiro: errou o valor e quer arrumar.
+  bool podeAvisar(Cobranca cobranca) => !cobranca.paga;
+
+  String rotuloDoAviso(Cobranca cobranca) =>
+      cobranca.foiAvisada ? 'Corrigir o aviso' : 'Avisar que paguei';
+
+  /// O aviso ja enviado, do ponto de vista de quem enviou. Nulo quando
+  /// nao ha nenhum.
+  String? avisoEnviadoDe(Cobranca cobranca) {
+    final aviso = cobranca.pagamentoInformado;
+    if (aviso == null) return null;
+
+    return 'Voce informou ${Formatters.moeda(aviso.valor)} em '
+        '${Formatters.data(aviso.dataPagamento)}. '
+        'Aguardando a confirmacao do proprietario.';
+  }
+
   /// Explicacao do rateio, uma vez no topo da lista. Repetir em cada card
   /// viraria ruido, e ela nao muda de mes para mes.
   String? get explicacaoDoRateio {
