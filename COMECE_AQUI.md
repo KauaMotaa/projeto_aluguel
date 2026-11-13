@@ -126,9 +126,16 @@ vai para o painel, inquilino vai para o painel dele.
 11. **Compartilhar a cobrança** — na mesma folha, o botão manda a quebra
     para o inquilino pelo WhatsApp. Funciona também com a cobrança já
     paga, que aí vale de comprovante.
-12. **Sair** e entrar como `maria@exemplo.com`: o painel do inquilino
-    mostra as cobranças dela, com a quebra entre aluguel, água e energia, e
-    o histórico de consumo mês a mês.
+12. **Sair** e entrar como `maria@exemplo.com`. O painel dela mostra as
+    cobranças com a conta explicada — cada parcela diz quanto foi medido,
+    quanto coube de área comum e o preço do mês — e o histórico de consumo
+    em gráfico, com a comparação com o mês anterior.
+13. **Avisar que paguei**, no card da cobrança em aberto. Repare que a
+    cobrança **continua em aberto** depois: o aviso é um recado, não um
+    pagamento.
+14. **Sair** e voltar como proprietário: o card da Kitnet 01 está em
+    destaque, o cabeçalho avisa que há um pagamento informado, e a folha
+    abre preenchida com o que a Maria disse. Confirme, e o aviso some.
 
 O segundo ponto (Quadra 104 Sul) começa sem leitura e sem fatura. Abra a
 prévia dele para ver os dois alertas e o botão desabilitado — e, se quiser,
@@ -145,7 +152,7 @@ cd aluguel_app
 flutter test
 ```
 
-São 78 testes. Eles trocam o cliente HTTP por um de mentira, então passam
+São 123 testes. Eles trocam o cliente HTTP por um de mentira, então passam
 pela conversão de JSON e pelo tratamento de erro de verdade. Detalhe do
 que cobrem em [`aluguel_app/README.md`](aluguel_app/README.md).
 
@@ -203,6 +210,13 @@ Ainda no cadastro: tente dar à unidade nova um nome que já existe no ponto
 ("Kitnet 01"). O campo barra. Essa validação é só do app — a API aceita
 nome repetido, e duas "Kitnet 01" no mesmo endereço são um problema na hora
 de lançar leitura, não agora.
+
+O **aviso de pagamento** é um teste de duas pontas, e o detalhe que vale
+observar é o que *não* acontece. Como Maria, avise que pagou e volte ao
+card: a cobrança segue **em aberto**, com a linha dizendo que está
+aguardando. Entre como proprietário e abra aquele card: o valor e a forma
+já vêm preenchidos com o que ela informou, e é só conferir e lançar. Só
+então o status vira *paga*, e o aviso some dos dois lados.
 
 O último é a volta completa entre os dois perfis. Entre como proprietário,
 feche novembro no primeiro ponto, saia e entre como `maria@exemplo.com`:
