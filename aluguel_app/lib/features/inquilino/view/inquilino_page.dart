@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/utils/texto_cobranca.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -112,6 +114,13 @@ class _InquilinoView extends StatelessWidget {
           texto: 'Minhas cobrancas',
           icone: Icons.receipt_long_outlined,
         ),
+        if (vm.explicacaoDoRateio != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            vm.explicacaoDoRateio!,
+            style: AppTypography.caption.copyWith(fontSize: 11),
+          ),
+        ],
         const SizedBox(height: AppSpacing.sm),
         if (vm.cobrancas.isEmpty)
           AppCard(
@@ -242,6 +251,15 @@ class _CardCobranca extends StatelessWidget {
   final InquilinoViewModel vm;
   final Cobranca cobranca;
 
+  /// Cobranca antiga pode nao ter a quebra guardada. Nesse caso mostra so
+  /// o total, em vez de inventar de onde ele veio.
+  static ValueRow _linhaDeConsumo(InquilinoViewModel vm, Cobranca cobranca,
+      String tipo, String label, String valor) {
+    final origem = vm.origemDe(cobranca, tipo);
+    if (origem == null) return ValueRow.normal(label: label, valor: valor);
+    return ValueRow.comOrigem(label: label, valor: valor, origem: origem);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppCard(
@@ -267,12 +285,27 @@ class _CardCobranca extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               StatusBadge.doStatus(cobranca.status),
+              // O inquilino guarda o proprio comprovante com o mesmo
+              // texto que o dono manda: a quebra inteira, nao so o total.
+              IconButton(
+                onPressed: () => SharePlus.instance.share(
+                  ShareParams(
+                    text: TextoCobranca.corpo(cobranca),
+                    subject: TextoCobranca.assunto(cobranca),
+                  ),
+                ),
+                tooltip: 'Compartilhar',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.share_outlined, size: 18),
+                color: AppColors.textSecondary,
+              ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm + 2),
           ValueRow.normal(label: 'Aluguel', valor: vm.aluguelDe(cobranca)),
-          ValueRow.normal(label: 'Agua', valor: vm.aguaDe(cobranca)),
-          ValueRow.normal(label: 'Energia', valor: vm.energiaDe(cobranca)),
+          _linhaDeConsumo(vm, cobranca, 'agua', 'Agua', vm.aguaDe(cobranca)),
+          _linhaDeConsumo(
+              vm, cobranca, 'energia', 'Energia', vm.energiaDe(cobranca)),
           ValueRow.total(label: 'Total', valor: vm.totalDe(cobranca)),
         ],
       ),

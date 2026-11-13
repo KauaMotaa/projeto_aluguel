@@ -516,10 +516,24 @@ def fechar(imovel_id: int, competencia: str, _: dict = Depends(apenas_proprietar
             "valor_total": linha["valor_total"],
             "status": "aberta",
             "vencimento": date(ano, mes, contrato["dia_vencimento"]).isoformat(),
+            # De onde saiu cada parcela. Guardado agora, e nao recalculado
+            # depois, porque a conta e daquele mes: trocar uma leitura em
+            # marco nao pode mudar o que foi cobrado em janeiro.
+            "detalhe_agua": _detalhe(resultado["agua"], linha["agua"]),
+            "detalhe_energia": _detalhe(resultado["energia"], linha["energia"]),
         }
         db.COBRANCAS.append(cobranca)
         geradas.append(cobranca)
     return geradas
+
+
+def _detalhe(resumo: Optional[dict], parcela: dict) -> Optional[dict]:
+    """A quebra de uma parcela, do jeito que a cobranca guarda."""
+    if not resumo:
+        return None
+    return {"consumo": parcela["consumo"],
+            "rateio_comum": parcela["rateio_comum"],
+            "valor_unitario": resumo["valor_unitario"]}
 
 
 # --- cobrancas ------------------------------------------------------------

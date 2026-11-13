@@ -165,6 +165,8 @@ Map<String, Object?> cobrancaJson(
   int energia = 23000,
   String status = 'aberta',
   String vencimento = '2026-11-10',
+  Map<String, Object?>? detalheAgua,
+  Map<String, Object?>? detalheEnergia,
 }) =>
     {
       'id': id,
@@ -179,4 +181,19 @@ Map<String, Object?> cobrancaJson(
       'valor_total': aluguel + agua + energia,
       'status': status,
       'vencimento': vencimento,
+      'detalhe_agua': detalheAgua,
+      'detalhe_energia': detalheEnergia,
+    };
+
+/// A quebra de uma parcela: o que o submedidor marcou, a parte da area
+/// comum, e o preco da unidade de consumo no mes.
+Map<String, Object?> detalheJson({
+  required double consumo,
+  required double rateioComum,
+  required double valorUnitario,
+}) =>
+    {
+      'consumo': consumo,
+      'rateio_comum': rateioComum,
+      'valor_unitario': valorUnitario,
     };

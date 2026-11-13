@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/texto_cobranca.dart';
 import '../../../data/datasources/api_client.dart';
 import '../../../data/models/cobranca.dart';
 import '../../../data/models/pagamento.dart';
@@ -146,32 +147,11 @@ class CobrancaViewModel extends ChangeNotifier {
   // --- o texto que vai para o inquilino ----------------------------------
 
   /// Assunto, para os destinos que tem um (e-mail, por exemplo).
-  String get assuntoParaCompartilhar =>
-      'Cobrança de ${cobranca.identificacao} — $competenciaFormatada';
+  String get assuntoParaCompartilhar => TextoCobranca.assunto(cobranca);
 
-  /// A cobranca em texto, para o menu de compartilhar do sistema.
-  ///
-  /// Este texto sai do app e chega numa pessoa, entao vai acentuado, ao
-  /// contrario do resto da interface: "Agua" na tela do dono e um deslize
-  /// de estilo, "Agua" numa mensagem cobrando alguem e desleixo.
-  ///
-  /// A ultima linha e a que evita a discussao de todo mes. Sem ela o
-  /// inquilino soma a propria leitura, acha menos do que esta cobrado, e
-  /// a conversa comeca errada.
-  String get textoParaCompartilhar => [
-        '${cobranca.identificacao} — $competenciaFormatada',
-        '',
-        'Aluguel: $aluguelFormatado',
-        'Água: $aguaFormatada',
-        'Energia: $energiaFormatada',
-        'Total: $totalFormatado',
-        '',
-        if (quitada) 'Situação: pago'
-        else 'Vence em $vencimentoFormatado',
-        '',
-        'Água e energia incluem a parte da área comum do ponto, '
-            'dividida igualmente entre as unidades ocupadas.',
-      ].join('\n');
+  /// A cobranca em texto, para o menu de compartilhar do sistema. O
+  /// inquilino manda exatamente o mesmo, do lado dele.
+  String get textoParaCompartilhar => TextoCobranca.corpo(cobranca);
 
   /// Mensagem de confirmacao, depois de salvar. Quem decide se quitou e a
   /// API: ela soma os pagamentos anteriores, que o app nao conhece.

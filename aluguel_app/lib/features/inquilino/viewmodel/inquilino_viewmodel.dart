@@ -97,6 +97,36 @@ class InquilinoViewModel extends ChangeNotifier {
   String energiaDe(Cobranca c) => Formatters.moeda(c.valorEnergia);
   String totalDe(Cobranca c) => Formatters.moeda(c.valorTotal);
 
+  /// De onde saiu a parcela de agua ou de energia.
+  ///
+  /// E a linha que transforma "R$ 125,34" em algo conferivel: o que o
+  /// submedidor marcou, o que coube de area comum, e o preco do mes. Sem
+  /// ela o inquilino soma a propria leitura, acha menos do que esta
+  /// cobrado, e a conversa com o dono comeca errada.
+  ///
+  /// Nula em cobranca gerada antes de a API guardar a quebra — a tela
+  /// mostra so o total nesse caso, em vez de inventar numero.
+  String? origemDe(Cobranca cobranca, String tipo) {
+    final detalhe =
+        tipo == 'agua' ? cobranca.detalheAgua : cobranca.detalheEnergia;
+    if (detalhe == null) return null;
+
+    final seu = Formatters.consumo(detalhe.consumo, tipo);
+    final comum = Formatters.consumo(detalhe.rateioComum, tipo);
+    final preco = Formatters.moeda(detalhe.valorUnitario.round());
+    final unidade = tipo == 'agua' ? 'm³' : 'kWh';
+
+    return '$seu seus e $comum de area comum, a $preco/$unidade';
+  }
+
+  /// Explicacao do rateio, uma vez no topo da lista. Repetir em cada card
+  /// viraria ruido, e ela nao muda de mes para mes.
+  String? get explicacaoDoRateio {
+    if (!_cobrancas.any((c) => c.temDetalhe)) return null;
+    return 'Agua e energia incluem a parte da area comum do ponto, '
+        'dividida igualmente entre as unidades ocupadas.';
+  }
+
   String mesDe(PontoConsumo ponto) =>
       Formatters.competenciaCurta(ponto.competencia);
 

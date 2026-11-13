@@ -223,6 +223,20 @@ class PreviaOut(BaseModel):
 
 # --- cobrancas ------------------------------------------------------------
 
+class DetalheRateio(BaseModel):
+    """De onde sai a parcela de agua ou de energia de uma cobranca.
+
+    Existe para o inquilino ver a conta, e nao so o total: o que o
+    submedidor dele marcou, quanto da area comum coube a ele, e quanto
+    custou a unidade de consumo naquele mes. Sem isso o rateio, do lado
+    de quem paga, e um numero que caiu do ceu.
+    """
+
+    consumo: float = Field(description="o que o submedidor da unidade marcou")
+    rateio_comum: float = Field(description="a parte da area comum")
+    valor_unitario: float = Field(description="centavos por m3 ou por kWh")
+
+
 class CobrancaOut(BaseModel):
     id: int
     contrato_id: int
@@ -236,6 +250,8 @@ class CobrancaOut(BaseModel):
     valor_total: int
     status: StatusCobranca
     vencimento: str
+    detalhe_agua: Optional[DetalheRateio] = None
+    detalhe_energia: Optional[DetalheRateio] = None
 
 
 class PagamentoIn(BaseModel):
