@@ -10,6 +10,8 @@ O cenario reproduz os mockups: dois pontos, quatro unidades no primeiro
 from datetime import date
 from itertools import count
 
+import rateio
+
 _ids = {nome: count(1) for nome in
         ("imovel", "unidade", "inquilino", "contrato", "leitura", "fatura",
          "cobranca", "pagamento")}
@@ -125,31 +127,16 @@ FATURAS = [
 ]
 
 
-def _cobranca(contrato_id, unidade_id, identificacao, inquilino, competencia,
-              aluguel, agua, energia, status, dia_vencimento):
-    ano, mes = competencia.split("-")
-    return {"id": proximo_id("cobranca"), "contrato_id": contrato_id,
-            "unidade_id": unidade_id, "identificacao": identificacao,
-            "inquilino": inquilino, "competencia": competencia,
-            "valor_aluguel": aluguel, "valor_agua": agua,
-            "valor_energia": energia,
-            "valor_total": aluguel + agua + energia, "status": status,
-            "vencimento": "%s-%s-%02d" % (ano, mes, dia_vencimento)}
-
-
 # Cobrancas de setembro e outubro, do imovel 1, para o painel do inquilino
-# nao abrir vazio e para os status terem variacao. As parcelas de agua e
-# energia sao as que o rateio produz para as leituras acima: a soma das
-# parcelas de cada tipo fecha exatamente com a fatura da competencia.
-COBRANCAS: list[dict] = [
-    _cobranca(1, 1, "Kitnet 01", "Maria Souza", "2026-09", 65000, 12533, 23580, "paga", 10),
-    _cobranca(2, 2, "Kitnet 02", "Jose Andrade", "2026-09", 62000, 10133, 21719, "paga", 10),
-    _cobranca(3, 4, "Kitnet 04", "Ana Ribeiro", "2026-09", 70000, 14134, 24201, "paga", 5),
-
-    _cobranca(1, 1, "Kitnet 01", "Maria Souza", "2026-10", 65000, 12267, 23706, "paga", 10),
-    _cobranca(2, 2, "Kitnet 02", "Jose Andrade", "2026-10", 62000, 10667, 21211, "atrasada", 10),
-    _cobranca(3, 4, "Kitnet 04", "Ana Ribeiro", "2026-10", 70000, 14666, 23083, "paga", 5),
-]
+# nao abrir vazio e para os status terem variacao.
+#
+# Preenchida no fim do arquivo, e nao aqui: os valores saem do proprio
+# rateio, e o calculo usa as consultas que estao definidas mais abaixo.
+# Antes eram numeros escritos a mao, e um centavo acabou na unidade
+# errada em setembro — foi o primeiro teste do rateio que pegou. Calcular
+# faz o historico de demonstracao ser, por construcao, o que a conta
+# produz.
+COBRANCAS: list[dict] = []
 
 PAGAMENTOS: list[dict] = []
 
@@ -210,6 +197,75 @@ def cobrancas_do_contrato(contrato_id: int) -> list[dict]:
     return [c for c in COBRANCAS if c["contrato_id"] == contrato_id]
 
 
+def _consumos_medidos(imovel_id: int, tipo: str,
+                      competencia: str) -> dict[int, float]:
+    medidos = {}
+    for registro in unidades_do_imovel(imovel_id):
+        if not contrato_ativo(registro["id"]):
+            continue
+        lida = leitura(registro["id"], tipo, competencia)
+        if lida:
+            medidos[registro["id"]] = lida["valor_atual"] - lida["valor_anterior"]
+    return medidos
+
+
+# Tudo pago, menos a Kitnet 02 em outubro: o painel precisa de variacao, e
+# o inquilino precisa ver uma cobranca em atraso em algum lugar.
+_ATRASOS = {("2026-10", 2)}
+
+
+def _cobrancas_do_cenario() -> list[dict]:
+    """O historico de demonstracao, calculado pelo rateio de verdade."""
+    geradas = []
+    for competencia in ("2026-09", "2026-10"):
+        ano, mes = competencia.split("-")
+        parcelas = {
+            tipo: rateio.calcular(
+                fatura(1, tipo, competencia)["valor_total"],
+                fatura(1, tipo, competencia)["consumo_total"],
+                _consumos_medidos(1, tipo, competencia),
+            )
+            for tipo in ("agua", "energia")
+        }
+
+        for unidade_do_mes in unidades_do_imovel(1):
+            contrato = contrato_ativo(unidade_do_mes["id"])
+            if not contrato:
+                continue
+
+            agua = parcelas["agua"]["parcelas"][unidade_do_mes["id"]]
+            energia = parcelas["energia"]["parcelas"][unidade_do_mes["id"]]
+            aluguel = contrato["valor_aluguel"]
+            atrasada = (competencia, unidade_do_mes["id"]) in _ATRASOS
+
+            geradas.append({
+                "id": proximo_id("cobranca"),
+                "contrato_id": contrato["id"],
+                "unidade_id": unidade_do_mes["id"],
+                "identificacao": unidade_do_mes["identificacao"],
+                "inquilino": nome_do_inquilino(contrato),
+                "competencia": competencia,
+                "valor_aluguel": aluguel,
+                "valor_agua": agua["valor"],
+                "valor_energia": energia["valor"],
+                "valor_total": aluguel + agua["valor"] + energia["valor"],
+                "status": "atrasada" if atrasada else "paga",
+                "vencimento": "%s-%s-%02d" % (ano, mes,
+                                              contrato["dia_vencimento"]),
+                "detalhe_agua": {
+                    "consumo": agua["consumo"],
+                    "rateio_comum": agua["rateio_comum"],
+                    "valor_unitario": parcelas["agua"]["resumo"]["valor_unitario"],
+                },
+                "detalhe_energia": {
+                    "consumo": energia["consumo"],
+                    "rateio_comum": energia["rateio_comum"],
+                    "valor_unitario": parcelas["energia"]["resumo"]["valor_unitario"],
+                },
+            })
+    return geradas
+
+
 def competencias_com_dados() -> list[str]:
     """Competencias que tem algum lancamento, mais o mes do calendario.
 
@@ -225,3 +281,8 @@ def competencias_com_dados() -> list[str]:
     vistas |= {registro["competencia"] for registro in COBRANCAS}
     vistas.add(date.today().strftime("%Y-%m"))
     return sorted(vistas, reverse=True)
+
+
+# As cobrancas de demonstracao so podem ser montadas aqui, depois das
+# consultas acima.
+COBRANCAS.extend(_cobrancas_do_cenario())

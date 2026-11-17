@@ -71,8 +71,16 @@ que for digitado ali fica guardado no aparelho até a rede voltar. E o app
 é como se pega a tecla a mais — 3650 no lugar de 365 passa pela regra de
 "não pode ser menor que a anterior", mas não passa pela média.
 
-Como **inquilino**: as cobranças dele, com a quebra entre aluguel, água e
-energia, e o histórico de consumo mês a mês.
+Como **inquilino**: as cobranças dele com a conta explicada — não só
+"água: R$ 125,33", mas "7,5 m³ seus e 0,3 m³ de área comum, a R$ 16,00/m³"
+—, o histórico de consumo em gráfico com a comparação com o mês anterior,
+o comprovante para guardar, e o **aviso de pagamento**.
+
+O aviso não quita nada, de propósito. O inquilino informa valor, data e
+forma; a cobrança continua em aberto; o proprietário vê o recado em
+destaque e confirma, com o formulário já preenchido pelo que o outro lado
+informou. Deixar o inquilino mudar o status sozinho faria a cobrança
+aparecer paga para os dois sem ninguém ter conferido nada.
 
 ## Testes
 
@@ -84,7 +92,7 @@ cd aluguel_app && flutter test
 cd api_mock && python -m pytest -q
 ```
 
-93 testes: 78 do app e 15 do rateio. Nenhum dos do app precisa da API no
+139 testes: 123 do app e 16 do rateio. Nenhum dos do app precisa da API no
 ar — o dublê é o cliente HTTP de dentro do `ApiClient`, então o teste ainda
 passa pela conversão de JSON, pela query string e pelo tratamento de erro
 de verdade. E esse mesmo dublê sabe ficar sem rede, que é como se testa a

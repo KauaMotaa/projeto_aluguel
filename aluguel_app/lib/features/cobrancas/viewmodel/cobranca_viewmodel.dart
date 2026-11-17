@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/texto_cobranca.dart';
 import '../../../data/datasources/api_client.dart';
 import '../../../data/models/cobranca.dart';
 import '../../../data/models/pagamento.dart';
@@ -21,7 +22,13 @@ import '../../../data/repositories/cobranca_repository.dart';
 class CobrancaViewModel extends ChangeNotifier {
   CobrancaViewModel(this._repo, {required this.cobranca, DateTime? hoje})
       : _hoje = hoje ?? DateTime.now() {
-    controllerValor.text = Formatters.valor(cobranca.valorTotal);
+    // Se o inquilino avisou, o formulario abre com o que ele informou.
+    // Conferir um numero ja preenchido e mais rapido, e menos sujeito a
+    // engano, do que digitar de novo o que o outro lado ja disse.
+    final aviso = cobranca.pagamentoInformado;
+    controllerValor.text =
+        Formatters.valor(aviso?.valor ?? cobranca.valorTotal);
+    if (aviso != null) _forma = aviso.forma;
   }
 
   final CobrancaRepository _repo;
@@ -30,14 +37,9 @@ class CobrancaViewModel extends ChangeNotifier {
 
   final TextEditingController controllerValor = TextEditingController();
 
-  /// As quatro formas que a API aceita, com o rotulo de cada uma. A chave
-  /// e o que vai no corpo da requisicao.
-  static const Map<String, String> formas = {
-    'pix': 'Pix',
-    'dinheiro': 'Dinheiro',
-    'transferencia': 'Transferencia',
-    'outro': 'Outro',
-  };
+  /// As formas que a API aceita. Mora no Model porque o aviso que o
+  /// inquilino manda usa a mesma lista.
+  static const Map<String, String> formas = formasDePagamento;
 
   String _forma = 'pix';
   bool _salvando = false;
@@ -58,6 +60,20 @@ class CobrancaViewModel extends ChangeNotifier {
   bool get quitada => cobranca.paga;
 
   String get titulo => '${cobranca.identificacao}  ·  ${cobranca.inquilino}';
+
+  /// O recado do inquilino, quando ele avisou que pagou.
+  ///
+  /// Nao e pagamento: e o que ele diz ter feito. O proprietario confere e
+  /// lanca, ou corrige o valor antes de lancar — e so o lancamento dele
+  /// que muda o status.
+  String? get avisoDoInquilino {
+    final aviso = cobranca.pagamentoInformado;
+    if (aviso == null) return null;
+
+    final rotulo = formas[aviso.forma] ?? aviso.forma;
+    return '${cobranca.inquilino} informou ${Formatters.moeda(aviso.valor)} '
+        'por $rotulo em ${Formatters.data(aviso.dataPagamento)}.';
+  }
   String get aluguelFormatado => Formatters.moeda(cobranca.valorAluguel);
   String get aguaFormatada => Formatters.moeda(cobranca.valorAgua);
   String get energiaFormatada => Formatters.moeda(cobranca.valorEnergia);
@@ -146,32 +162,11 @@ class CobrancaViewModel extends ChangeNotifier {
   // --- o texto que vai para o inquilino ----------------------------------
 
   /// Assunto, para os destinos que tem um (e-mail, por exemplo).
-  String get assuntoParaCompartilhar =>
-      'Cobrança de ${cobranca.identificacao} — $competenciaFormatada';
+  String get assuntoParaCompartilhar => TextoCobranca.assunto(cobranca);
 
-  /// A cobranca em texto, para o menu de compartilhar do sistema.
-  ///
-  /// Este texto sai do app e chega numa pessoa, entao vai acentuado, ao
-  /// contrario do resto da interface: "Agua" na tela do dono e um deslize
-  /// de estilo, "Agua" numa mensagem cobrando alguem e desleixo.
-  ///
-  /// A ultima linha e a que evita a discussao de todo mes. Sem ela o
-  /// inquilino soma a propria leitura, acha menos do que esta cobrado, e
-  /// a conversa comeca errada.
-  String get textoParaCompartilhar => [
-        '${cobranca.identificacao} — $competenciaFormatada',
-        '',
-        'Aluguel: $aluguelFormatado',
-        'Água: $aguaFormatada',
-        'Energia: $energiaFormatada',
-        'Total: $totalFormatado',
-        '',
-        if (quitada) 'Situação: pago'
-        else 'Vence em $vencimentoFormatado',
-        '',
-        'Água e energia incluem a parte da área comum do ponto, '
-            'dividida igualmente entre as unidades ocupadas.',
-      ].join('\n');
+  /// A cobranca em texto, para o menu de compartilhar do sistema. O
+  /// inquilino manda exatamente o mesmo, do lado dele.
+  String get textoParaCompartilhar => TextoCobranca.corpo(cobranca);
 
   /// Mensagem de confirmacao, depois de salvar. Quem decide se quitou e a
   /// API: ela soma os pagamentos anteriores, que o app nao conhece.

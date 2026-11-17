@@ -24,7 +24,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-15 testes, todos de `rateio.py`, que é função pura — o lugar mais barato
+16 testes, todos de `rateio.py`, que é função pura — o lugar mais barato
 de testar e o mais caro de errar. A propriedade principal tem dois: um
 caso escrito à mão e 500 entradas sorteadas com semente fixa, afirmando
 que **a soma das parcelas fecha exatamente com a fatura**. É a razão de
@@ -34,7 +34,14 @@ Um dos testes compara as cobranças do cenário com o que o rateio produz.
 Ele reprovou na primeira execução: o histórico de setembro, escrito à
 mão, tinha um centavo na Kitnet 01 que pertencia à Kitnet 04. A soma
 fechava com a fatura, então nada quebrava — mas este README promete que
-aquele histórico sai desta conta, e não saía.
+aquele histórico sai desta conta, e não saía. Foi por causa disso que o
+cenário de demonstração passou a ser **calculado** pelo próprio rateio,
+em vez de escrito à mão: agora ele é, por construção, o que a conta
+produz.
+
+Outro verifica que `detalhe_agua` e `detalhe_energia` **explicam** o
+valor cobrado — os três números têm de multiplicar de volta. É a promessa
+que o app faz ao inquilino, e sem o teste ela poderia envelhecer calada.
 
 ## Entrar
 
@@ -74,6 +81,7 @@ e serve para ver os alertas da prévia funcionando.
 | GET | `/api/v1/cobrancas?competencia=&imovel_id=` | proprietário |
 | POST | `/api/v1/cobrancas/{id}/pagamento` | proprietário |
 | GET | `/api/v1/minhas-cobrancas` | inquilino |
+| POST | `/api/v1/minhas-cobrancas/{id}/aviso-pagamento` | inquilino |
 | GET | `/api/v1/meu-consumo` | inquilino |
 
 Fatura, prévia e fechamento penduram no imóvel porque cada ponto tem a
@@ -89,6 +97,21 @@ intervalo calculado no cliente ofereceria meses vazios.
 `/inquilinos` traz, em cada pessoa, as unidades que ela ocupa hoje. A lista
 de nomes sozinha não diz quem já está alojado, e é isso que evita escolher
 por engano alguém que já tem contrato ativo.
+
+A cobrança carrega `detalhe_agua` e `detalhe_energia`: o que o submedidor
+da unidade marcou, quanto da área comum coube a ela, e o preço da unidade
+de consumo naquele mês. Fica **guardado na cobrança**, e não recalculado
+na hora, porque a conta é daquela competência — corrigir uma leitura em
+março não pode mudar o que já foi cobrado em janeiro. É o que permite ao
+inquilino conferir a conta em vez de só ver o total.
+
+`POST /minhas-cobrancas/{id}/aviso-pagamento` é o inquilino dizendo que
+pagou. **Não muda o status da cobrança**, de propósito: quem sabe se o
+dinheiro entrou é o proprietário, e continua sendo o lançamento dele, pela
+rota de pagamento, que vale. O aviso fica anexado em `pagamento_informado`
+e some quando o proprietário lança. Avisar de novo sobrescreve o aviso
+anterior — corrigir o valor que se informou é mais comum do que ter dois
+avisos para a mesma cobrança.
 
 `/leituras` devolve, em cada linha, `media_consumo` e `meses_historico` —
 a média do que aquele medidor consumiu nas competências já fechadas, e de

@@ -1,3 +1,15 @@
+/// As formas que a API aceita, com o rotulo de cada uma. A chave e o que
+/// vai no corpo da requisicao.
+///
+/// Os dois lados usam: o proprietario ao registrar o recebimento, e o
+/// inquilino ao avisar que pagou.
+const Map<String, String> formasDePagamento = {
+  'pix': 'Pix',
+  'dinheiro': 'Dinheiro',
+  'transferencia': 'Transferencia',
+  'outro': 'Outro',
+};
+
 /// Resposta do registro de pagamento.
 ///
 /// O campo que a tela usa e [cobrancaStatus]: a API soma os pagamentos da

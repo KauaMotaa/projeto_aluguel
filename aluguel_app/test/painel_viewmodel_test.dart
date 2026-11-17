@@ -131,6 +131,51 @@ void main() {
         ['Kitnet 01', 'Kitnet 02', 'Kitnet 03']);
   });
 
+  group('pagamento informado pelo inquilino', () {
+    ApiFalsa comAviso() {
+      final api = cenario();
+      api.rotas['GET /cobrancas'] = [
+        cobrancaJson(1,
+            unidadeId: 1, aluguel: 65000, agua: 12000, energia: 23000,
+            status: 'paga'),
+        cobrancaJson(2,
+            unidadeId: 2,
+            contratoId: 2,
+            identificacao: 'Kitnet 02',
+            inquilino: 'Jose Andrade',
+            aluguel: 62000,
+            agua: 10000,
+            energia: 18000,
+            status: 'aberta',
+            pagamentoInformado: avisoJson(valor: 90000)),
+      ];
+      return api;
+    }
+
+    test('a unidade avisada se separa das outras', () async {
+      final (vm, _) = await montar(comAviso());
+      final unidades = vm.grupos.single.unidades;
+
+      expect(vm.foiAvisada(unidades[0]), isFalse);
+      expect(vm.foiAvisada(unidades[1]), isTrue);
+      expect(vm.legendaDaUnidade(unidades[1]),
+          'Jose Andrade  ·  informou pagamento');
+    });
+
+    test('o cabecalho conta quantos esperam conferencia', () async {
+      final (vm, _) = await montar(comAviso());
+
+      expect(vm.resumoAvisos,
+          '1 pagamento informado, aguardando sua conferencia');
+    });
+
+    test('sem aviso nenhum, a linha nao aparece', () async {
+      final (vm, _) = await montar(cenario());
+
+      expect(vm.resumoAvisos, isNull);
+    });
+  });
+
   test('sair limpa o painel e o mes escolhido', () async {
     final (vm, competencia) = await montar(cenario());
 

@@ -96,6 +96,21 @@ class PainelViewModel extends ChangeNotifier {
   /// a quebra com o inquilino, que e o comprovante dele.
   bool temCobranca(Unidade unidade) => _porUnidade.containsKey(unidade.id);
 
+  /// O inquilino avisou que pagou e ninguem conferiu ainda. O card ganha
+  /// destaque por isso: e a unica coisa no painel que espera o dono.
+  bool foiAvisada(Unidade unidade) =>
+      _porUnidade[unidade.id]?.foiAvisada ?? false;
+
+  /// Quantos avisos aguardam conferencia, para o cabecalho. Nulo quando
+  /// nao ha nenhum: uma linha dizendo "0 avisos" so ocuparia espaco.
+  String? get resumoAvisos {
+    final avisadas = _porUnidade.values.where((c) => c.foiAvisada).length;
+    if (avisadas == 0) return null;
+    return avisadas == 1
+        ? '1 pagamento informado, aguardando sua conferencia'
+        : '$avisadas pagamentos informados, aguardando sua conferencia';
+  }
+
   Future<void> carregar() async {
     _carregando = true;
     _erro = null;
@@ -158,6 +173,9 @@ class PainelViewModel extends ChangeNotifier {
       return '${unidade.inquilino}  ·  mes ainda nao fechado';
     }
     final cobranca = _porUnidade[unidade.id];
+    if (cobranca != null && cobranca.foiAvisada) {
+      return '${unidade.inquilino}  ·  informou pagamento';
+    }
     if (cobranca != null && !cobranca.paga) {
       return '${unidade.inquilino}  ·  vence ${Formatters.data(cobranca.vencimento)}';
     }

@@ -171,10 +171,12 @@ def _consumos(imovel_id: int, tipo: str, competencia: str) -> dict[int, float]:
 def test_as_cobrancas_do_cenario_sao_as_que_o_rateio_produz():
     """Guarda a coerencia dos dados de demonstracao.
 
-    O historico de setembro e outubro e escrito a mao em `db.py`, e o
-    README promete que ele sai desta conta. Sem este teste a promessa
-    envelhece calada: o inquilino abre o historico e ve um centavo que o
-    rateio nao explica.
+    Hoje o `db.py` monta o historico chamando o proprio rateio, entao
+    este teste nao pode mais falhar por um numero digitado errado — foi
+    exatamente o que ele pegou da primeira vez, e foi por isso que o
+    cenario passou a ser calculado. O que ele ainda guarda e a fiacao:
+    se o cenario parar de usar as leituras e faturas certas, ou se
+    `calcular` mudar de forma, isto reprova.
     """
     for cobranca in db.COBRANCAS:
         imovel_id = db.unidade(cobranca["unidade_id"])["imovel_id"]
@@ -194,6 +196,29 @@ def test_as_cobrancas_do_cenario_sao_as_que_o_rateio_produz():
             assert cobranca[campo] == esperado, (
                 f"{cobranca['identificacao']} em {competencia}: {tipo} "
                 f"esta {cobranca[campo]} e o rateio da {esperado}"
+            )
+
+
+def test_a_cobranca_guarda_de_onde_saiu_cada_parcela():
+    """O detalhe tem de explicar o valor, nao so acompanhar ele.
+
+    E a promessa que o app faz ao inquilino: "7,5 m3 seus mais 0,33 de
+    area comum, a R$ 16,00 o m3". Se os tres numeros nao multiplicarem
+    de volta no que foi cobrado, a tela estaria mentindo com precisao.
+    """
+    for cobranca in db.COBRANCAS:
+        for tipo, campo in (("agua", "valor_agua"), ("energia", "valor_energia")):
+            detalhe = cobranca[f"detalhe_{tipo}"]
+            assert detalhe, f"{cobranca['identificacao']}: sem detalhe de {tipo}"
+
+            exato = ((detalhe["consumo"] + detalhe["rateio_comum"])
+                     * detalhe["valor_unitario"])
+
+            # Um centavo de folga: o rateio arredonda por maior resto, e o
+            # rateio_comum vem arredondado em tres casas.
+            assert abs(cobranca[campo] - exato) < 1.5, (
+                f"{cobranca['identificacao']} em {cobranca['competencia']}: "
+                f"{tipo} cobrou {cobranca[campo]} e o detalhe explica {exato:.0f}"
             )
 
 

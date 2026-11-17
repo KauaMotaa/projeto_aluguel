@@ -16,6 +16,27 @@ class InquilinoRepository {
         .toList();
   }
 
+  /// Avisa o proprietario de que esta cobranca foi paga.
+  ///
+  /// Nao muda o status: devolve a cobranca com o recado anexado. Quem
+  /// confirma o recebimento e o proprietario, pela rota dele.
+  Future<Cobranca> avisarPagamento({
+    required int cobrancaId,
+    required int valor,
+    required String dataPagamento,
+    required String forma,
+  }) async {
+    final json = await _api.post(
+      '/minhas-cobrancas/$cobrancaId/aviso-pagamento',
+      corpo: {
+        'valor': valor,
+        'data_pagamento': dataPagamento,
+        'forma': forma,
+      },
+    ) as Map<String, dynamic>;
+    return Cobranca.fromJson(json);
+  }
+
   Future<List<Consumo>> meuConsumo() async {
     final json = await _api.get('/meu-consumo') as List;
     return json

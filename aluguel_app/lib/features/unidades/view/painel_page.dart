@@ -204,6 +204,7 @@ class _PainelPageState extends State<PainelPage> {
             _CardUnidade(
               unidade: unidade,
               vm: vm,
+              destaque: vm.foiAvisada(unidade),
               // O card e a porta das duas acoes da unidade: cobranca
               // aberta leva ao recebimento, unidade vaga leva ao
               // contrato. Nenhuma das duas, e ele fica parado.
@@ -360,6 +361,25 @@ class _Cabecalho extends StatelessWidget {
               ),
             ),
           ],
+          if (vm.resumoAvisos != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Icon(Icons.mark_email_read_outlined,
+                    size: 14, color: Colors.white),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    vm.resumoAvisos!,
+                    style: AppTypography.caption.copyWith(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -371,10 +391,15 @@ class _CardUnidade extends StatelessWidget {
     required this.unidade,
     required this.vm,
     this.onToque,
+    this.destaque = false,
   });
 
   final Unidade unidade;
   final PainelViewModel vm;
+
+  /// Ha um pagamento informado esperando conferencia. E a unica coisa no
+  /// painel que pede uma acao do dono, entao e a unica que se destaca.
+  final bool destaque;
 
   /// Nulo quando nao ha nada a fazer com a unidade: ocupada e com o mes
   /// ainda nao fechado, ou com a cobranca ja paga. Um card clicavel que
@@ -387,6 +412,7 @@ class _CardUnidade extends StatelessWidget {
 
     return AppCard(
       onTap: onToque,
+      destaque: destaque,
       child: Row(
         children: [
           Expanded(
