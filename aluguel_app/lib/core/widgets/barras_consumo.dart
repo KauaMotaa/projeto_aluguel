@@ -25,9 +25,16 @@ class BarraConsumo {
 
 /// Consumo mes a mes, em barras.
 ///
-/// Uma tabela de numeros responde "quanto gastei em outubro". A barra
-/// responde "estou gastando mais que antes", que e a pergunta que a
-/// pessoa tem olhando a conta — e que numero nenhum responde sozinho.
+/// A base e **zero**, e isso tem uma consequencia que vale entender antes
+/// de achar que e defeito: meses parecidos dao barras parecidas. Com 7,0
+/// e 7,5 m³ as duas barras saem quase iguais — e e verdade, o consumo
+/// esta estavel. Cortar o eixo faria a diferenca parecer enorme, que e o
+/// jeito classico de um grafico mentir sem mentir nenhum numero.
+///
+/// Entao a divisao de trabalho e esta: a barra mostra a **ordem de
+/// grandeza** e se o mes destoa de verdade; a porcentagem escrita ao lado
+/// do titulo da a **variacao exata**. Um numero sozinho nao da a primeira,
+/// e uma barra sozinha nao da a segunda.
 ///
 /// Mes sem leitura vira um tracinho no chao, nao uma barra de altura
 /// zero: zero e uma informacao, e esta nao e.

@@ -195,11 +195,16 @@ leitura em março não pode mudar o que foi cobrado em janeiro. Cobrança
 antiga, sem a quebra guardada, mostra só o total — a tela não inventa de
 onde ele veio.
 
-**O histórico virou gráfico.** A tabela respondia "quanto gastei em
-outubro"; a barra responde "estou gastando mais que antes", que é a
-pergunta de quem olha a conta. Ao lado do título vai a comparação com o
-mês anterior por extenso. Mês sem leitura é um tracinho no chão, não uma
-barra zerada — pelo mesmo motivo que a tabela mostrava travessão.
+**O histórico virou gráfico**, com a comparação com o mês anterior por
+extenso ao lado do título. Os dois juntos, e não a barra sozinha: a base
+do gráfico é zero, então meses parecidos dão barras parecidas — com 7,0 e
+7,5 m³ elas saem quase iguais, e isso é verdade, o consumo está estável.
+Cortar o eixo faria a diferença parecer enorme, que é o jeito clássico de
+um gráfico mentir sem errar um número sequer. Então a barra mostra a ordem
+de grandeza e se algum mês destoa; a porcentagem dá a variação exata.
+
+Mês sem leitura é um tracinho no chão, não uma barra zerada — pelo mesmo
+motivo que a tabela mostrava travessão.
 
 **Ele avisa que pagou**, e isso é o que mais exigiu decisão de projeto.
 
