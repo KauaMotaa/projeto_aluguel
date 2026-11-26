@@ -86,6 +86,7 @@ Map<String, Object?> competenciaJson(
   int imoveisFechados = 0,
   int imoveis = 2,
   bool atual = false,
+  bool temLancamento = true,
 }) =>
     {
       'competencia': valor,
@@ -93,6 +94,7 @@ Map<String, Object?> competenciaJson(
       'imoveis_fechados': imoveisFechados,
       'imoveis': imoveis,
       'atual': atual,
+      'tem_lancamento': temLancamento,
     };
 
 Map<String, Object?> imovelJson(

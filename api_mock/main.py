@@ -363,6 +363,7 @@ def listar_competencias(_: dict = Depends(apenas_proprietario)):
     calendario no cliente ofereceria meses vazios.
     """
     hoje = date.today().strftime("%Y-%m")
+    lancadas = db.competencias_lancadas()
     saida = []
     for competencia in db.competencias_com_dados():
         cobrancas = [c for c in db.COBRANCAS if c["competencia"] == competencia]
@@ -373,6 +374,7 @@ def listar_competencias(_: dict = Depends(apenas_proprietario)):
             "imoveis_fechados": len(fechados),
             "imoveis": len(db.IMOVEIS),
             "atual": competencia == hoje,
+            "tem_lancamento": competencia in lancadas,
         })
     return saida
 

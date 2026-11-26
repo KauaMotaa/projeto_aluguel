@@ -94,7 +94,7 @@ void main() {
       expect(loja.descricao(outubro), '1 de 2 pontos fechados');
     });
 
-    test('mes corrente sem fechamento e marcado como tal', () async {
+    test('mes corrente com lancamento, mas sem fechamento', () async {
       final loja = store(comMeses());
       await loja.carregar();
 
@@ -102,6 +102,73 @@ void main() {
         loja.descricao(loja.opcoes.first),
         'Nenhum ponto fechado  ·  mes corrente',
       );
+    });
+
+    test('mes que acabou de virar diz que nao ha lancamento', () async {
+      final loja = store(ApiFalsa({
+        'GET /competencias': [
+          competenciaJson('2026-12', atual: true, temLancamento: false),
+          competenciaJson('2026-11', cobrancas: 3, imoveisFechados: 2),
+        ],
+      }));
+      await loja.carregar();
+
+      // "Nenhum ponto fechado" seria verdade, mas sugere que falta
+      // fechar — quando na verdade ainda nao ha o que fechar.
+      expect(loja.descricao(loja.opcoes.first),
+          'Sem lancamento ainda  ·  mes corrente');
+    });
+  });
+
+  group('em que mes o app abre', () {
+    test('no mes novo, abre no anterior, que e o que esta sendo cobrado',
+        () async {
+      // Dia 1 de dezembro: dezembro entra na lista porque e o mes do
+      // calendario, mas esta vazio. Abrir nele deixaria o painel zerado
+      // enquanto quem usa ainda esta cobrando novembro, que vence dia 10.
+      final loja = store(ApiFalsa({
+        'GET /competencias': [
+          competenciaJson('2026-12', atual: true, temLancamento: false),
+          competenciaJson('2026-11', cobrancas: 3, imoveisFechados: 2),
+          competenciaJson('2026-10', cobrancas: 3, imoveisFechados: 2),
+        ],
+      }));
+      await loja.carregar();
+
+      expect(loja.atual, '2026-11');
+      expect(loja.formatada, 'Novembro de 2026');
+    });
+
+    test('o mes novo continua no seletor, a um toque', () async {
+      final loja = store(ApiFalsa({
+        'GET /competencias': [
+          competenciaJson('2026-12', atual: true, temLancamento: false),
+          competenciaJson('2026-11', cobrancas: 3, imoveisFechados: 2),
+        ],
+      }));
+      await loja.carregar();
+
+      expect(loja.opcoes.first.valor, '2026-12');
+      expect(loja.selecionar('2026-12'), isTrue);
+      expect(loja.atual, '2026-12');
+    });
+
+    test('com lancamento no mes corrente, abre nele mesmo', () async {
+      final loja = store(comMeses());
+      await loja.carregar();
+
+      expect(loja.atual, '2026-11');
+    });
+
+    test('sistema recem-instalado abre no unico mes que existe', () async {
+      final loja = store(ApiFalsa({
+        'GET /competencias': [
+          competenciaJson('2026-12', atual: true, temLancamento: false),
+        ],
+      }));
+      await loja.carregar();
+
+      expect(loja.atual, '2026-12');
     });
   });
 }

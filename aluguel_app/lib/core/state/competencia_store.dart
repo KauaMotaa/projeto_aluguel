@@ -58,9 +58,8 @@ class CompetenciaStore extends ChangeNotifier {
     try {
       _opcoes = await _repo.listar();
       // Mantem a escolha de quem esta usando, se ela continuar na lista.
-      // Senao cai no mes mais recente que a API conhece, que vem primeiro.
       if (_opcoes.isNotEmpty && selecionada == null) {
-        _escolhida = _opcoes.first.valor;
+        _escolhida = _padrao().valor;
       }
     } on ApiException catch (e) {
       _erro = e.mensagem;
@@ -69,6 +68,23 @@ class CompetenciaStore extends ChangeNotifier {
       _carregando = false;
       notifyListeners();
     }
+  }
+
+  /// O mes em que o app abre: o mais recente que **tem lancamento**.
+  ///
+  /// Nao e simplesmente o primeiro da lista, porque o mes do calendario
+  /// entra nela mesmo vazio. No dia 1 de dezembro o primeiro seria
+  /// dezembro, e o painel abriria zerado — enquanto quem usa ainda esta
+  /// cobrando novembro, que vence dia 10. O mes novo continua no seletor,
+  /// a um toque, para quando for a hora de lancar as leituras dele.
+  ///
+  /// Sem nenhum mes lancado — sistema recem-instalado — vale o primeiro
+  /// mesmo, que ai e o unico.
+  Competencia _padrao() {
+    for (final opcao in _opcoes) {
+      if (opcao.temLancamento) return opcao;
+    }
+    return _opcoes.first;
   }
 
   /// Troca o mes. Devolve `false` quando nao mudou nada, e e isso que
@@ -94,7 +110,11 @@ class CompetenciaStore extends ChangeNotifier {
 
   String descricao(Competencia opcao) {
     final partes = <String>[];
-    if (opcao.fechada) {
+    if (!opcao.temLancamento) {
+      // "Nenhum ponto fechado" seria verdade mas enganaria: sugere que
+      // falta fechar, quando na verdade ainda nao ha o que fechar.
+      partes.add('Sem lancamento ainda');
+    } else if (opcao.fechada) {
       final n = opcao.cobrancas;
       partes.add('Fechado  ·  $n ${n == 1 ? 'cobranca' : 'cobrancas'}');
     } else if (opcao.parcial) {

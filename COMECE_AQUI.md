@@ -152,7 +152,7 @@ cd aluguel_app
 flutter test
 ```
 
-São 123 testes. Eles trocam o cliente HTTP por um de mentira, então passam
+São 128 testes. Eles trocam o cliente HTTP por um de mentira, então passam
 pela conversão de JSON e pelo tratamento de erro de verdade. Detalhe do
 que cobrem em [`aluguel_app/README.md`](aluguel_app/README.md).
 

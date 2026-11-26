@@ -10,6 +10,7 @@ caro de errar — um centavo fora aqui aparece na conta de alguem.
 """
 
 import random
+from datetime import date
 
 import db
 import rateio
@@ -220,6 +221,23 @@ def test_a_cobranca_guarda_de_onde_saiu_cada_parcela():
                 f"{cobranca['identificacao']} em {cobranca['competencia']}: "
                 f"{tipo} cobrou {cobranca[campo]} e o detalhe explica {exato:.0f}"
             )
+
+
+def test_o_mes_do_calendario_entra_no_seletor_mas_sem_lancamento():
+    """As duas listas de competencia respondem perguntas diferentes.
+
+    O seletor precisa do mes do calendario para haver por onde comecar um
+    mes novo. Mas abrir nele deixaria o painel zerado no dia 1, enquanto
+    quem usa ainda esta cobrando o mes anterior — entao o app precisa
+    saber distinguir "esta na lista" de "tem o que mostrar".
+    """
+    hoje = date.today().strftime("%Y-%m")
+
+    assert hoje in db.competencias_com_dados()
+    assert db.competencias_lancadas() <= set(db.competencias_com_dados())
+
+    for competencia in db.competencias_lancadas():
+        assert competencia in db.competencias_com_dados()
 
 
 def test_o_total_da_cobranca_e_aluguel_mais_agua_mais_energia():
