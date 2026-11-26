@@ -18,14 +18,14 @@ suba o mock, gere as pastas de plataforma do Flutter e rode.
 cd api_mock && pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-cd ../aluguel_app && flutter create . --platforms=android --project-name aluguel_app
-flutter pub get && flutter run
+cd ../aluguel_app && flutter pub get && flutter run
 ```
 
-> As pastas `android/` e `ios/` **não estão no repositório**, de propósito:
-> elas são geradas pelo SDK de cada máquina, com a versão de Gradle e Kotlin
-> instalada ali. O `flutter create .` numa pasta que já tem `lib/` só
-> preenche o que falta, não apaga código.
+> A pasta `android/` está no repositório: `git clone` e `flutter run`
+> bastam. Ficam de fora só os arquivos que são da máquina de quem gerou —
+> o `local.properties` com o caminho do SDK, o wrapper do Gradle —, e o
+> Flutter os regenera no primeiro build. Para **iOS, web ou desktop**, aí
+> sim gere a pasta: `flutter create . --platforms=web --project-name aluguel_app`.
 
 Para entrar: `kaua@exemplo.com` (proprietário) ou `maria@exemplo.com`
 (inquilino), senha `123456` nos dois. São dados fictícios do mock.

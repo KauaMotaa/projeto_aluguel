@@ -40,23 +40,24 @@ compilador C da Microsoft. Nesse caso instale `fastapi`, `uvicorn` e
 data de arquivo em vez do nativo. Em 3.12 ou 3.13 o `requirements.txt`
 instala inteiro, sem contorno.
 
-## 2. Gerar as pastas de plataforma do Flutter
+## 2. Baixar as dependências
 
-O projeto vem com `lib/` e `pubspec.yaml` prontos, mas **sem** as pastas
-`android/` e `ios/`. Isso é de propósito: essas pastas são geradas pelo SDK
-da sua máquina, com a versão de Gradle e Kotlin que você tem instalada. Se
-eu mandasse elas prontas daqui, quebrariam no seu ambiente.
-
-Gerar leva um comando:
+A pasta `android/` **vem no repositório**, então não há passo de geração:
 
 ```bash
 cd aluguel_app
-flutter create . --platforms=android --project-name aluguel_app
 flutter pub get
 ```
 
-O `flutter create .` numa pasta que já tem `lib/` **não apaga o seu
-código** — ele só preenche o que está faltando.
+Os arquivos que são da máquina de quem gerou — o `local.properties` com o
+caminho do SDK, o wrapper do Gradle, o registrador de plugins — ficam fora
+do git, e o Flutter os regenera no primeiro build. É o `android/.gitignore`
+que o próprio Flutter escreve que cuida disso.
+
+> Se quiser rodar em **iOS, web ou desktop**, aí sim precisa gerar a pasta
+> daquela plataforma: `flutter create . --platforms=web --project-name aluguel_app`.
+> O `flutter create .` numa pasta que já tem `lib/` **não apaga o seu
+> código** — ele só preenche o que está faltando.
 
 ## 3. Rodar
 

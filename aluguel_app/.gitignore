@@ -8,8 +8,16 @@ pubspec.lock
 .idea/
 .vscode/
 
-# geradas por `flutter create .`
-android/
+# A pasta android/ VAI para o repositorio, para quem clonar conseguir
+# rodar sem passo extra — o trabalho precisa estar funcional no GitHub.
+# O que e da maquina de quem gerou (local.properties com o caminho do
+# SDK, o wrapper do Gradle, o registrador de plugins) fica de fora pelo
+# android/.gitignore, que o proprio Flutter escreve. O Flutter regenera
+# esses arquivos no primeiro build.
+
+# As outras plataformas continuam geradas por `flutter create .`: o
+# trabalho e de Android, e versionar cinco plataformas que ninguem abre
+# so encheria o repositorio.
 ios/
 web/
 linux/

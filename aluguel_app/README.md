@@ -375,11 +375,11 @@ rota nenhuma. Histórico de pagamentos de uma cobrança: a API guarda cada
 lançamento, e o app só mostra o status que sai deles.
 
 **Notificação** de vencimento, que seria o próximo passo natural do lado
-do inquilino, esbarra numa decisão do projeto: o `flutter_local_notifications`
-exige entradas no `AndroidManifest.xml`, que mora na pasta `android/` —
-gerada na máquina de cada um e fora do repositório de propósito. Entraria
-em conflito com o "`flutter create .` e pronto". O `share_plus` passou
-justamente porque não precisa de manifesto.
+do inquilino. O `flutter_local_notifications` exige permissão e receivers
+no `AndroidManifest.xml`, e enquanto a pasta `android/` ficava fora do
+repositório isso era impeditivo — a configuração se perderia a cada
+`flutter create`. Com `android/` versionada, o impedimento acabou: o que
+falta agora é só o trabalho.
 
 A fila offline cobre só as **leituras**, que é onde o problema existe de
 verdade. Fatura e fechamento continuam exigindo rede — e tudo bem: os dois
