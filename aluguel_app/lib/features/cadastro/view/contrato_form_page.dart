@@ -69,7 +69,7 @@ class _ContratoFormView extends StatelessWidget {
           children: [
             Text(
               vm.titulo,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              style: AppTypography.appBar,
             ),
             Text(
               endereco,

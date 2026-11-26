@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 /// Etiqueta de estado. O estado vira construtor, nao condicional
 /// espalhado pela tela.
@@ -64,7 +65,7 @@ class StatusBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: cor),
+        style: AppTypography.badge.copyWith(color: cor),
       ),
     );
   }

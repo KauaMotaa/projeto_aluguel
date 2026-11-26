@@ -11,6 +11,12 @@ class AppColors {
   static const Color primary = Color(0xFF15514C);
   static const Color primaryMuted = Color(0xFF1E7A72);
   static const Color primarySurface = Color(0xFFDCEEEB);
+  static const Color primaryBorder = Color(0xFFB9DDD7);
+
+  /// Texto e icone sobre o fundo primario. E branco hoje, mas quem usa
+  /// pede "a cor que se le sobre o verde" — se a paleta mudar, muda aqui,
+  /// e nao em doze telas.
+  static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onPrimaryMuted = Color(0xFFA9CFC9);
 
   static const Color background = Color(0xFFF7F8F6);
@@ -18,6 +24,13 @@ class AppColors {
   static const Color surfaceMuted = Color(0xFFF2F5F3);
   static const Color border = Color(0xFFE3E6E3);
   static const Color borderStrong = Color(0xFFC9D0CD);
+
+  /// Linha que separa valores dentro de um card. Mais clara que [border],
+  /// que delimita o card inteiro.
+  static const Color divider = Color(0xFFEEF0EE);
+
+  /// Fundo de controle desligado.
+  static const Color disabled = Color(0xFFC3CCC9);
 
   static const Color textPrimary = Color(0xFF16201E);
   static const Color textSecondary = Color(0xFF5E6B68);

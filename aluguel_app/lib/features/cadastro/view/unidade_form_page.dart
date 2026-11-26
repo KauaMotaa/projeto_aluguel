@@ -55,7 +55,7 @@ class _UnidadeFormView extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'Nova unidade',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          style: AppTypography.appBar,
         ),
       ),
       body: ListView(

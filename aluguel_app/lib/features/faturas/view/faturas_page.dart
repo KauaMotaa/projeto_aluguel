@@ -55,7 +55,7 @@ class _FaturasView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Fatura da concessionaria',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                style: AppTypography.appBar),
             Text(
               '$endereco  ·  ${vm.competenciaFormatada}',
               style: AppTypography.caption.copyWith(

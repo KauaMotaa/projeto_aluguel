@@ -269,6 +269,27 @@ segunda porque dono e inquilino perguntam a mesma coisa sobre a forma de
 pagamento. Como todo componente daqui, nenhum dos dois conhece ViewModel:
 recebem valor e devolvem callback.
 
+### A regra, e como conferir
+
+**Nenhuma cor e nenhum estilo de texto nascem fora de `core/theme/`.** Não
+é só intenção — dá para verificar, de dentro de `lib/`:
+
+```bash
+grep -rn "Color(0x\|TextStyle(" --include=*.dart . | grep -v core/theme/
+```
+
+Silêncio é o resultado esperado. O mesmo vale para a paleta crua do
+Flutter (`Colors.white` e companhia) e para formatação dentro da View:
+
+```bash
+grep -rnE "(^|[^a-zA-Z])Colors\.|Formatters\." --include=*.dart features/*/view/
+```
+
+As quatro violações que existiam foram para tokens: `AppColors.onPrimary`
+(o branco sobre o verde, que aparecia solto doze vezes), `primaryBorder`,
+`divider`, `disabled`, e os estilos `AppTypography.appBar`, `botao`,
+`botaoCompacto`, `badge` e `marca`.
+
 As variações são **construtores nomeados** (padrão Factory), não um
 parâmetro `tipo` com `switch` dentro do `build`. A chamada fica legível e a
 variante vira parte da assinatura.

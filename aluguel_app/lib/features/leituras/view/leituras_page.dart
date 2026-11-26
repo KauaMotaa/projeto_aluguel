@@ -50,7 +50,7 @@ class _LeiturasView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Leituras do mes',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                style: AppTypography.appBar),
             Text(
               '$endereco  ·  ${vm.competenciaFormatada}',
               style: AppTypography.caption.copyWith(

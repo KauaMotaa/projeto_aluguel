@@ -79,6 +79,17 @@ class PreviaViewModel extends ChangeNotifier {
     return 'Dividido em partes iguais entre as $n unidades ocupadas';
   }
 
+  // --- os valores de uma linha, ja formatados -----------------------------
+  //
+  // A View recebe String pronta, nunca int de centavos. E o que mantem a
+  // View burra, que e o ponto do MVVM — e o que permite testar a conta
+  // sem construir widget nenhum.
+
+  String aluguelDe(LinhaPrevia linha) => Formatters.moeda(linha.valorAluguel);
+  String aguaDe(LinhaPrevia linha) => Formatters.moeda(linha.agua.valor);
+  String energiaDe(LinhaPrevia linha) => Formatters.moeda(linha.energia.valor);
+  String totalDe(LinhaPrevia linha) => Formatters.moeda(linha.valorTotal);
+
   String parcela(ParcelaConsumo parcela, String tipo) {
     final medido = Formatters.consumo(parcela.consumo, tipo);
     final comum = Formatters.numero(parcela.rateioComum, casas: 2);

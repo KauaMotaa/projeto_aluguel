@@ -203,7 +203,7 @@ class _Cabecalho extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       vm.nome,
-                      style: AppTypography.title.copyWith(color: Colors.white),
+                      style: AppTypography.title.copyWith(color: AppColors.onPrimary),
                     ),
                   ],
                 ),
@@ -228,7 +228,7 @@ class _Cabecalho extends StatelessWidget {
           Text(
             vm.valorCabecalho,
             style: AppTypography.display.copyWith(
-              color: Colors.white,
+              color: AppColors.onPrimary,
               fontSize: 32,
             ),
           ),

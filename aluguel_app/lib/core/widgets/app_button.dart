@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_typography.dart';
 
 /// Botao do design system.
 ///
@@ -27,7 +28,7 @@ class AppButton extends StatelessWidget {
         label: label,
         onPressed: onPressed,
         fundo: AppColors.primary,
-        texto: Colors.white,
+        texto: AppColors.onPrimary,
         borda: null,
         carregando: carregando,
       );
@@ -55,7 +56,7 @@ class AppButton extends StatelessWidget {
         label: label,
         onPressed: onPressed,
         fundo: AppColors.danger,
-        texto: Colors.white,
+        texto: AppColors.onPrimary,
         borda: null,
         carregando: carregando,
       );
@@ -79,8 +80,8 @@ class AppButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: fundo,
           foregroundColor: texto,
-          disabledBackgroundColor: const Color(0xFFC3CCC9),
-          disabledForegroundColor: Colors.white,
+          disabledBackgroundColor: AppColors.disabled,
+          disabledForegroundColor: AppColors.onPrimary,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radius),
@@ -88,7 +89,7 @@ class AppButton extends StatelessWidget {
                 ? BorderSide.none
                 : BorderSide(color: borda!, width: 1.5),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: AppTypography.botao,
         ),
         child: carregando
             ? const SizedBox(
@@ -96,7 +97,7 @@ class AppButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation(Colors.white),
+                  valueColor: AlwaysStoppedAnimation(AppColors.onPrimary),
                 ),
               )
             : Text(label),

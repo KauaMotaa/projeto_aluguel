@@ -5,7 +5,6 @@ import '../../../core/state/competencia_store.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -67,7 +66,7 @@ class _PreviaView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Previa do fechamento',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                style: AppTypography.appBar),
             Text(
               '$endereco  ·  ${vm.competenciaFormatada}',
               style: AppTypography.caption.copyWith(
@@ -225,10 +224,7 @@ class _Alertas extends StatelessWidget {
                   foregroundColor: AppColors.danger,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 32),
-                  textStyle: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  textStyle: AppTypography.botaoCompacto,
                 ),
               ),
             ),
@@ -276,10 +272,7 @@ class _Faturas extends StatelessWidget {
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   minimumSize: const Size(0, 28),
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  textStyle: AppTypography.botaoCompacto,
                 ),
                 child: const Text('Corrigir'),
               ),
@@ -387,22 +380,16 @@ class _CardUnidade extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          ValueRow.normal(
-            label: 'Aluguel',
-            valor: Formatters.moeda(linha.valorAluguel),
-          ),
+          ValueRow.normal(label: 'Aluguel', valor: vm.aluguelDe(linha)),
           ValueRow.normal(
             label: vm.parcela(linha.agua, 'agua'),
-            valor: Formatters.moeda(linha.agua.valor),
+            valor: vm.aguaDe(linha),
           ),
           ValueRow.normal(
             label: vm.parcela(linha.energia, 'energia'),
-            valor: Formatters.moeda(linha.energia.valor),
+            valor: vm.energiaDe(linha),
           ),
-          ValueRow.total(
-            label: 'Total',
-            valor: Formatters.moeda(linha.valorTotal),
-          ),
+          ValueRow.total(label: 'Total', valor: vm.totalDe(linha)),
         ],
       ),
     );

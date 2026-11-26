@@ -141,7 +141,7 @@ class _PainelPageState extends State<PainelPage> {
           : FloatingActionButton.extended(
               onPressed: _novaUnidade,
               backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.onPrimary,
               icon: const Icon(Icons.add, size: 20),
               label: const Text('Nova unidade'),
             ),
@@ -312,7 +312,7 @@ class _Cabecalho extends StatelessWidget {
                             Text(
                               vm.competenciaFormatada,
                               style: AppTypography.title
-                                  .copyWith(color: Colors.white),
+                                  .copyWith(color: AppColors.onPrimary),
                             ),
                             const SizedBox(width: 4),
                             const Icon(
@@ -347,7 +347,7 @@ class _Cabecalho extends StatelessWidget {
           Text(
             vm.totalFormatado,
             style: AppTypography.display.copyWith(
-              color: Colors.white,
+              color: AppColors.onPrimary,
               fontSize: 32,
             ),
           ),
@@ -366,13 +366,13 @@ class _Cabecalho extends StatelessWidget {
             Row(
               children: [
                 const Icon(Icons.mark_email_read_outlined,
-                    size: 14, color: Colors.white),
+                    size: 14, color: AppColors.onPrimary),
                 const SizedBox(width: 5),
                 Expanded(
                   child: Text(
                     vm.resumoAvisos!,
                     style: AppTypography.caption.copyWith(
-                      color: Colors.white,
+                      color: AppColors.onPrimary,
                       fontSize: 12,
                     ),
                   ),

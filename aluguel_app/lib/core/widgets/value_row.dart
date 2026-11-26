@@ -102,7 +102,7 @@ class ValueRow extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.only(top: 8),
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFFEEF0EE))),
+        border: Border(top: BorderSide(color: AppColors.divider)),
       ),
       child: linha,
     );

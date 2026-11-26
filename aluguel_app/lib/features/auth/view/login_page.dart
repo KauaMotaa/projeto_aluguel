@@ -57,14 +57,7 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 48),
-              const Text(
-                'Gestao de aluguel',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
+              const Text('Gestao de aluguel', style: AppTypography.marca),
               const SizedBox(height: 6),
               Text(
                 'Entre para ver suas unidades',
