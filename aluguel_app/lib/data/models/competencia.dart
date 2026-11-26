@@ -11,6 +11,7 @@ class Competencia {
     required this.imoveisFechados,
     required this.imoveis,
     required this.atual,
+    this.temLancamento = false,
   });
 
   /// No formato AAAA-MM, que e o que as rotas da API recebem.
@@ -22,6 +23,11 @@ class Competencia {
   /// E o mes do calendario. Nao quer dizer que tenha lancamento.
   final bool atual;
 
+  /// Tem leitura, fatura ou cobranca. O mes que acabou de virar nao tem:
+  /// ele aparece no seletor para haver por onde comecar, mas abrir nele
+  /// deixaria a tela vazia no dia 1 de cada mes.
+  final bool temLancamento;
+
   bool get aberta => imoveisFechados == 0;
   bool get fechada => imoveis > 0 && imoveisFechados == imoveis;
   bool get parcial => !aberta && !fechada;
@@ -32,5 +38,6 @@ class Competencia {
         imoveisFechados: json['imoveis_fechados'] as int,
         imoveis: json['imoveis'] as int,
         atual: json['atual'] as bool,
+        temLancamento: (json['tem_lancamento'] as bool?) ?? false,
       );
 }

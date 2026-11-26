@@ -92,7 +92,7 @@ cd aluguel_app && flutter test
 cd api_mock && python -m pytest -q
 ```
 
-139 testes: 123 do app e 16 do rateio. Nenhum dos do app precisa da API no
+145 testes: 128 do app e 17 do rateio. Nenhum dos do app precisa da API no
 ar — o dublê é o cliente HTTP de dentro do `ApiClient`, então o teste ainda
 passa pela conversão de JSON, pela query string e pelo tratamento de erro
 de verdade. E esse mesmo dublê sabe ficar sem rede, que é como se testa a

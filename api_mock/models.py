@@ -175,6 +175,10 @@ class CompetenciaOut(BaseModel):
     imoveis_fechados: int
     imoveis: int
     atual: bool = Field(description="e o mes do calendario")
+    tem_lancamento: bool = Field(
+        default=False,
+        description="tem leitura, fatura ou cobranca; o mes novo nao tem",
+    )
 
 
 # --- previa e fechamento --------------------------------------------------

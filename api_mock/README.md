@@ -24,7 +24,7 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-16 testes, todos de `rateio.py`, que é função pura — o lugar mais barato
+17 testes, todos de `rateio.py`, que é função pura — o lugar mais barato
 de testar e o mais caro de errar. A propriedade principal tem dois: um
 caso escrito à mão e 500 entradas sorteadas com semente fixa, afirmando
 que **a soma das parcelas fecha exatamente com a fatura**. É a razão de
@@ -93,6 +93,14 @@ recente para o mais antigo, e em cada um quantos pontos já foram fechados —
 o fechamento é por ponto, então um mês pode estar fechado num imóvel e
 aberto no outro. Quem sabe onde os lançamentos começam é a API; um
 intervalo calculado no cliente ofereceria meses vazios.
+
+Cada mês diz também se **tem lançamento** (`tem_lancamento`). O mês do
+calendário entra na lista mesmo vazio, senão não haveria por onde começar
+um mês novo — mas o app não deve *abrir* nele. No dia 1º de dezembro o mais
+recente seria dezembro, e o painel abriria zerado enquanto o proprietário
+ainda está cobrando novembro, que vence dia 10. Com o campo, o app abre no
+mês mais recente que tem o que mostrar, e o mês novo fica a um toque no
+seletor.
 
 `/inquilinos` traz, em cada pessoa, as unidades que ela ocupa hoje. A lista
 de nomes sozinha não diz quem já está alojado, e é isso que evita escolher

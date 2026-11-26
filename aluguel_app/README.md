@@ -72,7 +72,18 @@ nem repository nem ViewModel de tela.
 A lista de meses vem da API, de `GET /competencias`, e não de um cálculo de
 calendário. Quem sabe onde os lançamentos começam é o servidor; um
 intervalo inventado no cliente ofereceria meses vazios. O painel carrega
-essa lista antes dos dados e o store seleciona o mês mais recente.
+essa lista antes dos dados.
+
+O store abre no mês mais recente **que tem lançamento**, e não simplesmente
+no primeiro da lista. O mês do calendário entra nela mesmo vazio, para
+haver por onde começar um mês novo — mas no dia 1º de dezembro o primeiro
+seria dezembro, e o painel abriria zerado enquanto quem usa ainda está
+cobrando novembro, que vence dia 10. O mês novo continua no seletor, a um
+toque, para quando for a hora de lançar as leituras dele.
+
+No seletor, mês sem lançamento diz "Sem lançamento ainda". "Nenhum ponto
+fechado" seria verdade, mas sugere que falta fechar — quando ainda não há
+o que fechar.
 
 Quem lê o valor, lê de lá:
 
@@ -304,7 +315,7 @@ ponto do padrão.
 flutter test
 ```
 
-123 testes, e nenhum deles precisa da API no ar. O dublê não é o
+128 testes, e nenhum deles precisa da API no ar. O dublê não é o
 repository: é o `http.Client` de dentro do `ApiClient`, trocado por um
 `MockClient` em `test/support/api_falsa.dart`. Assim o teste passa pela
 conversão de JSON, pela query string e pelo tratamento de erro de verdade,

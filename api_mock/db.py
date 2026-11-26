@@ -266,6 +266,19 @@ def _cobrancas_do_cenario() -> list[dict]:
     return geradas
 
 
+def competencias_lancadas() -> set[str]:
+    """Competencias que tem leitura, fatura ou cobranca.
+
+    Separado de [competencias_com_dados] porque o app precisa distinguir
+    as duas coisas: o mes do calendario aparece no seletor mesmo vazio,
+    mas abrir nele deixaria a tela sem nada no dia 1 de cada mes.
+    """
+    vistas = {registro["competencia"] for registro in LEITURAS}
+    vistas |= {registro["competencia"] for registro in FATURAS}
+    vistas |= {registro["competencia"] for registro in COBRANCAS}
+    return vistas
+
+
 def competencias_com_dados() -> list[str]:
     """Competencias que tem algum lancamento, mais o mes do calendario.
 
@@ -276,10 +289,7 @@ def competencias_com_dados() -> list[str]:
     O mes corrente entra mesmo sem lancamento nenhum, senao nao haveria por
     onde comecar um mes novo.
     """
-    vistas = {registro["competencia"] for registro in LEITURAS}
-    vistas |= {registro["competencia"] for registro in FATURAS}
-    vistas |= {registro["competencia"] for registro in COBRANCAS}
-    vistas.add(date.today().strftime("%Y-%m"))
+    vistas = competencias_lancadas() | {date.today().strftime("%Y-%m")}
     return sorted(vistas, reverse=True)
 
 
